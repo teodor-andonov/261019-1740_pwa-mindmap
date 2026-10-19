@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f9fafc">
+  <meta name="description" content="Mindmap — one graph, many arrangements. A local-first mind mapping canvas.">
+  <title>Mindmap</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <style>
+    :root { --accent:#4055bf; --accent-soft:#e9ecff; --ink:#222a39; --muted:#7c8799; --border:#e2e6ed; --bg:#f9fafc; --panel:#fff; --surface:#f2f4f8; --shadow:0 12px 40px #26345f10; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--ink); font-size:13px }
+    *{box-sizing:border-box} body{margin:0; overflow:hidden; background:var(--bg)} button,input,select,textarea{font:inherit} button{color:inherit;cursor:pointer} button:disabled{opacity:.45; cursor:default} button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .app{display:grid;grid-template-rows:54px 42px minmax(0,1fr) 27px;height:100dvh; min-height:380px}
+    header{display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--border);min-width:0;white-space:nowrap}
+    .brand{display:flex;align-items:center;gap:9px;font-weight:750;font-size:15px;letter-spacing:-.45px;padding-right:14px;border-right:1px solid var(--border)}
+    .brand-mark{height:27px;width:27px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}
+    .file-name{border:none;background:transparent;padding:7px 6px;border-radius:6px;font-weight:650;max-width:190px;min-width:70px;text-overflow:ellipsis;outline:none}
+    .file-name:hover,.file-name:focus{background:var(--surface)}
+    .muted{color:var(--muted)} .dirty{width:7px;height:7px;flex-shrink:0;border-radius:50%;background:#e8a64c;display:none} .dirty.show{display:inline-block}
+    .spacer{flex:1}.sep{width:1px;background:var(--border);height:22px;margin:0 5px}
+    .btn{border:1px solid transparent;background:transparent;border-radius:8px;padding:8px 10px;font-weight:560;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;min-height:32px}
+    .btn:hover{background:var(--surface)} .btn.outlined{border-color:var(--border);background:white}.btn.outlined:hover{background:var(--surface)} .btn.primary{background:var(--accent);color:#fff}.btn.primary:hover{background:#3346aa}.btn.active{background:var(--accent-soft);color:var(--accent)}
+    .btn.small{padding:5px 8px;min-height:27px;font-size:12px}.btn.icon-only{padding:7px;width:32px}
+    .btn svg{height:16px;width:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+    .tabs{display:flex;gap:5px;align-items:end;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--border);min-width:0;overflow-x:auto;scrollbar-width:thin}
+    .tab{position:relative;align-self:stretch;display:flex;gap:7px;align-items:center;padding:0 15px;border:0;border-bottom:2px solid transparent;background:transparent;white-space:nowrap;color:var(--muted);font-weight:580;max-width:200px}
+    .tab .tab-label{overflow:hidden;text-overflow:ellipsis}.tab:hover{background:var(--surface)}.tab.active{border-bottom-color:var(--accent);color:var(--accent);background:#f6f7ff}
+    .tab .mode-dot{height:6px;width:6px;border-radius:100%;background:#bdc3ce}.tab .mode-dot.live{background:#29ae85}
+    .tabs .tab-action{align-self:center;border:1px solid var(--border);height:26px;min-width:26px;padding:0 8px;border-radius:7px;background:transparent;color:var(--muted);font-size:14px}.tabs .tab-action:hover{color:var(--accent);background:var(--accent-soft)}
+    .workspace{display:grid;grid-template-columns:minmax(0,1fr) 278px;min-height:0;position:relative}
+    .stage{position:relative;min-width:0;overflow:hidden;background-color:var(--bg);background-image:radial-gradient(#c8cfdd 0.8px,transparent .9px);background-size:24px 24px;touch-action:none}
+    .stage[data-theme="sketch"]{background-color:#fcfaf4;background-image:radial-gradient(#d8d0bd 0.7px,transparent .9px)}
+    .stage[data-theme="blueprint"]{background-color:#151e32;background-image:radial-gradient(#3b4a68 0.8px,transparent .9px)}
+    .stage svg{width:100%;height:100%;display:block;touch-action:none;cursor:grab} .stage svg.panning{cursor:grabbing}
+    .stage svg .node-group{cursor:move}.stage svg .edge-hit{cursor:pointer}.stage svg .port{cursor:crosshair}
+    .stage svg .node-title{fill:var(--ink);font-size:13px;font-weight:570;pointer-events:none;user-select:none}.stage[data-theme="blueprint"] svg .node-title{fill:#f0f4ff}.stage svg .edge-dot,.stage svg .bend-dot{cursor:move}
+    .stage .floating{position:absolute;z-index:2;display:flex;gap:5px;padding:5px;border-radius:10px;background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow)}
+    .stage .top-left{top:17px;left:17px}.stage .bottom-left{bottom:15px;left:17px}.stage .bottom-center{bottom:16px;left:50%;transform:translateX(-50%)}
+    .help{position:absolute;top:17px;right:18px;max-width:260px;color:var(--muted);font-size:11px;text-align:right;pointer-events:none;line-height:1.6}
+    .editor{position:absolute;z-index:5;display:none;width:206px;min-height:66px;background:#fff;border:2px solid var(--accent);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);font-size:13px;color:var(--ink);resize:both;outline:none}
+    aside{border-left:1px solid var(--border);background:var(--panel);overflow-y:auto;min-height:0;scrollbar-width:thin}
+    .inspector-top{padding:21px 18px 17px;border-bottom:1px solid var(--border)}.eyebrow{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);font-weight:770}
+    .inspector-heading{font-size:19px;letter-spacing:-.5px;font-weight:700;margin:7px 0 3px}.inspector-description{color:var(--muted);font-size:12px;line-height:1.55;margin:0}
+    .inspector-group{padding:17px 18px;border-bottom:1px solid var(--border)}.group-title{font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;font-weight:750;margin-bottom:13px}
+    .field{margin-bottom:14px}.field:last-child{margin-bottom:0}.field label{display:block;margin-bottom:7px;font-size:12px;font-weight:610}.field input[type="text"], .field textarea,.field select{width:100%;background:#fff;border:1px solid var(--border);border-radius:7px;padding:9px 10px;color:var(--ink)}.field textarea{min-height:72px;resize:vertical;line-height:1.4}
+    .field input[type="range"]{width:100%;accent-color:var(--accent)}.fieldrow{display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .field small{color:var(--muted)}.field .chiprow{display:flex;gap:5px;flex-wrap:wrap}.chip{border:1px solid var(--border);padding:7px 9px;border-radius:7px;background:#fff;font-size:12px}.chip.active{background:var(--accent-soft);color:var(--accent);border-color:#aab7ff}
+    .swatches{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.swatch{height:24px;width:24px;border:2px solid white;box-shadow:0 0 0 1px var(--border);border-radius:7px}.swatch.active{box-shadow:0 0 0 2px var(--accent)}
+    .callout{background:#f5f7fc;border-radius:9px;padding:12px;font-size:11px;color:#68758a;line-height:1.55}.callout strong{color:var(--ink)}
+    .inspector-buttons{display:flex;flex-wrap:wrap;gap:8px}.danger{color:#b5404b!important}
+    .footer{background:var(--panel);border-top:1px solid var(--border);padding:0 12px;display:flex;align-items:center;gap:9px;font-size:10px;color:var(--muted)}.footer .bullet{color:#b2bbc9}
+    .toast{position:absolute;left:50%;bottom:82px;transform:translateX(-50%);background:var(--ink);color:white;border-radius:9px;padding:10px 14px;box-shadow:var(--shadow);z-index:10;font-size:12px;max-width:80vw;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}.toast.show{opacity:1}
+    @media(max-width:1050px){.brand{padding-right:7px}.label-optional{display:none}.file-name{max-width:115px}.workspace{grid-template-columns:minmax(0,1fr) 240px}}
+    @media(max-width:720px){.app{grid-template-rows:50px 41px minmax(0,1fr) 24px}.brand{font-size:0;padding-right:5px}.brand-mark{height:26px;width:26px}.file-name{max-width:104px}.btn.primary{padding:7px}.workspace{grid-template-columns:minmax(0,1fr)} aside{position:absolute;top:0;right:0;bottom:0;width:min(82vw,310px);z-index:4;box-shadow:-8px 0 32px #1112;display:none} aside.open{display:block}.help{top:65px;right:12px;max-width:180px}.stage .top-left{top:12px;left:12px}.stage .bottom-left{bottom:12px;left:12px}.btn .label-optional{display:none}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 26 26" width="22" height="22"><path d="M6 7.5L18.5 8.5 13 19 6 7.5" stroke="white" opacity=".8" stroke-width="1.4" fill="none"/><circle cx="6" cy="7.5" r="3.3" fill="white"/><circle cx="18.5" cy="8.5" r="3.3" fill="white"/><circle cx="13" cy="19" r="3.3" fill="white"/></svg></span> Mindmap</div>
+    <input id="title" class="file-name" value="Untitled map" aria-label="Map title" title="Rename map">
+    <span id="dirty" class="dirty" title="Unsaved changes"></span>
+    <div class="spacer"></div>
+    <button class="btn" id="newFile" title="New file">New</button>
+    <button class="btn" id="openFile" title="Open a local JSON map"><span class="label-optional">Open</span><span aria-hidden="true">↗</span></button>
+    <button class="btn outlined" id="saveFile" title="Save to local JSON (Ctrl+S)"><span class="label-optional">Save</span><span aria-hidden="true">↓</span></button>
+    <div class="sep"></div>
+    <button class="btn primary" id="addNode"><span style="font-size:17px;line-height:12px">+</span> Node</button>
+    <button class="btn icon-only" id="toggleInspector" aria-label="Toggle inspector" title="Properties panel"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Map views"></nav>
+  <main class="workspace">
+    <section class="stage" id="stage" aria-label="Map canvas">
+      <div class="floating top-left"><button class="btn small" id="togglePhysics">◌ Relax</button><button class="btn small" id="fitView" title="Fit all nodes">⌗ Fit</button></div>
+      <div class="help" id="help">Drag nodes to move · drag a node's small handle to connect<br>Double-click empty space to add a node</div>
+      <svg id="canvas" role="img" aria-label="Interactive mind map"><g id="camera"><g id="edgeLayer"></g><g id="nodeLayer"></g><g id="interactionLayer"></g></g></svg>
+      <textarea id="inlineEditor" class="editor" aria-label="Edit node text" spellcheck="false"></textarea>
+      <div class="floating bottom-left"><button class="btn small" id="zoomOut" title="Zoom out">−</button><button class="btn small" id="zoomValue" title="Reset zoom">100%</button><button class="btn small" id="zoomIn" title="Zoom in">+</button></div>
+      <div id="toast" class="toast" role="status"></div>
+    </section>
+    <aside id="inspector" aria-label="Properties panel"></aside>
+  </main>
+  <footer class="footer"><span id="counts">0 nodes · 0 links</span><span class="bullet">•</span><span id="status">Local JSON · not yet saved</span><span class="spacer"></span><span>Mindmap v0.1 · No cloud, no account</span></footer>
+</div>
+<input id="fileInput" type="file" accept=".json,application/json" hidden>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const uid = prefix => prefix + '_' + (globalThis.crypto?.randomUUID?.().slice(0,8) || Math.random().toString(36).slice(2,10));
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const COLORS = ['#4055bf','#1c9e89','#cb914b','#bd6589','#647a9f','#66788c'];
+  const THEMES = {
+    minimal: {label:'Minimal', widths:{strong:3.5,medium:2,weak:1}, dashes:{strong:'',medium:'',weak:'5 7'}, dark:false},
+    sketch: {label:'Sketchbook', widths:{strong:3,medium:1.8,weak:1.2}, dashes:{strong:'',medium:'',weak:'3 8'}, dark:false},
+    blueprint: {label:'Blueprint', widths:{strong:2.5,medium:1.5,weak:1}, dashes:{strong:'',medium:'',weak:'4 5'}, dark:true}
+  };
+  const defaultPhysics = () => ({length:165,repulsion:2400,gap:20});
+  const initialDoc = () => {
+    const nodes = [
+      {id:'n_ideas',text:'Big idea',shape:'rounded',color:COLORS[0]},
+      {id:'n_questions',text:'Questions',shape:'ellipse',color:COLORS[2]},
+      {id:'n_research',text:'Research',shape:'rounded',color:COLORS[1]},
+      {id:'n_experiments',text:'Experiments',shape:'rounded',color:COLORS[3]},
+      {id:'n_decisions',text:'Decisions',shape:'rounded',color:COLORS[0]},
+      {id:'n_next',text:'Next steps',shape:'rectangle',color:COLORS[1]}
+    ];
+    const edges = [
+      {id:'e_a',source:'n_ideas',target:'n_questions',strength:'strong'},
+      {id:'e_b',source:'n_ideas',target:'n_research',strength:'strong'},
+      {id:'e_c',source:'n_questions',target:'n_experiments',strength:'medium'},
+      {id:'e_d',source:'n_research',target:'n_decisions',strength:'medium'},
+      {id:'e_e',source:'n_experiments',target:'n_decisions',strength:'weak'},
+      {id:'e_f',source:'n_decisions',target:'n_next',strength:'strong'}
+    ];
+    const positions = {n_ideas:{x:-170,y:-10,pinned:false},n_questions:{x:-15,y:-140,pinned:false},n_research:{x:15,y:100,pinned:false},n_experiments:{x:150,y:-115,pinned:false},n_decisions:{x:235,y:85,pinned:false},n_next:{x:415,y:110,pinned:false}};
+    return {version:1,id:uid('map'),title:'Untitled map',theme:'minimal',nodes,edges,views:[{id:uid('view'),name:'Exploration 01',mode:'static',positions,routes:{},physics:defaultPhysics(),viewport:{x:0,y:0,zoom:1}}]};
+  };
+  let doc = initialDoc(), activeViewId = doc.views[0].id, selected = null, hoveredNode = null, hoveredEdge = null;
+  let fileHandle = null, dirty = false, gesture = null, velocities = {}, raf = 0, editingId = null, toastTimer = 0;
+  const stage = $('stage'), canvas = $('canvas'), camera = $('camera'), edgesEl = $('edgeLayer'), nodesEl = $('nodeLayer'), interactionsEl = $('interactionLayer');
+  const view = () => doc.views.find(v => v.id===activeViewId) || doc.views[0];
+  const node = id => doc.nodes.find(n => n.id===id);
+  const edge = id => doc.edges.find(e => e.id===id);
+  const pos = id => view().positions[id];
+  const theme = () => THEMES[doc.theme] || THEMES.minimal;
+  function notice(message){clearTimeout(toastTimer);const el=$('toast');el.textContent=message;el.classList.add('show');toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
+  function markDirty(){dirty=true;$('dirty').classList.add('show');$('status').textContent=fileHandle?'Changes not saved to linked file':'Changes not saved · export JSON to keep them'}
+  function markClean(message){dirty=false;$('dirty').classList.remove('show');$('status').textContent=message||(fileHandle?'Saved to local file':'JSON exported · continue editing or save again')}
+  function safeNumber(n, fallback=0){return Number.isFinite(Number(n))?Number(n):fallback}
+  function ensurePositions(v){
+    const fallback=Object.values(v.positions || {}); v.positions=v.positions || {};v.routes=v.routes||{};v.physics={...defaultPhysics(),...(v.physics||{})};v.viewport=v.viewport||{x:0,y:0,zoom:1};
+    for(let i=0;i<doc.nodes.length;i++){const n=doc.nodes[i];if(!v.positions[n.id]){const p=fallback[i%Math.max(1,fallback.length)];v.positions[n.id]={x:(p?.x||0)+Math.cos(i*2.4)*130,y:(p?.y||0)+Math.sin(i*2.4)*130,pinned:false};} }
+    for(const id in v.positions)if(!node(id))delete v.positions[id];
+    for(const id in v.routes)if(!edge(id))delete v.routes[id];
+  }
+  function validate(raw){
+    if(!raw || raw.version!==1 || !Array.isArray(raw.nodes)||!Array.isArray(raw.edges)||!Array.isArray(raw.views)||!raw.views.length)throw Error('Not a compatible Mindmap v1 JSON file');
+    const ids=new Set();raw.nodes=raw.nodes.filter(n=>typeof n.id==='string'&&typeof n.text==='string'&&!ids.has(n.id)&&ids.add(n.id));
+    const eids=new Set();raw.edges=raw.edges.filter(e=>typeof e.id==='string'&&!eids.has(e.id)&&eids.add(e.id)&&ids.has(e.source)&&ids.has(e.target)&&e.source!==e.target);
+    const vs=new Set();raw.views=raw.views.filter(v=>v&&typeof v.id==='string'&&!vs.has(v.id)&&vs.add(v.id)); if(!raw.views.length)throw Error('Map must have at least one view');
+    raw.nodes.forEach(n=>{n.shape=['rounded','rectangle','ellipse','circle'].includes(n.shape)?n.shape:'rounded';if(!/^#[0-9a-f]{6}$/i.test(n.color))n.color=COLORS[0]});
+    raw.edges.forEach(e=>{if(!['strong','medium','weak'].includes(e.strength))e.strength='medium'});
+    raw.views.forEach(v=>{v.mode='static';v.name=String(v.name||'View');v.positions=v.positions&&typeof v.positions==='object'?v.positions:{};v.routes=v.routes&&typeof v.routes==='object'?v.routes:{};v.physics={...defaultPhysics(),...(v.physics||{})};v.viewport={x:safeNumber(v.viewport?.x,0),y:safeNumber(v.viewport?.y,0),zoom:Math.max(.2,Math.min(3,safeNumber(v.viewport?.zoom,1)))};for(const n of raw.nodes){if(!v.positions[n.id])v.positions[n.id]={x:Math.random()*400-200,y:Math.random()*250-125,pinned:false};v.positions[n.id].x=safeNumber(v.positions[n.id].x);v.positions[n.id].y=safeNumber(v.positions[n.id].y);v.positions[n.id].pinned=!!v.positions[n.id].pinned;}for(const k in v.routes){if(!eids.has(k)||!Array.isArray(v.routes[k]))delete v.routes[k];else v.routes[k]=v.routes[k].filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)).slice(0,100)} });
+    raw.theme=THEMES[raw.theme]?raw.theme:'minimal';raw.title=String(raw.title||'Untitled map');raw.id=String(raw.id||uid('map'));return raw;
+  }
+  function setDoc(next){stopPhysics();doc=validate(next);activeViewId=doc.views[0].id;fileHandle=null;dirty=false;selected=null;hoveredNode=null;hoveredEdge=null;$('title').value=doc.title;for(const v of doc.views)ensurePositions(v);markClean('Opened JSON · save to write changes');setView(activeViewId,true);}
+  function syncStatus(){$('counts').textContent=`${doc.nodes.length} nodes · ${doc.edges.length} links · ${doc.views.length} views`;$('dirty').classList.toggle('show',dirty)}
+  const svgRect = () => canvas.getBoundingClientRect();
+  function screenToWorld(cx,cy){const rect=svgRect(),v=view().viewport;return {x:(cx-rect.left-v.x)/v.zoom,y:(cy-rect.top-v.y)/v.zoom}}
+  function worldToScreen(x,y){const v=view().viewport;return {x:v.x+x*v.zoom,y:v.y+y*v.zoom}}
+  function setZoom(next,anchorX=stage.clientWidth/2,anchorY=stage.clientHeight/2){const v=view().viewport;next=Math.max(.2,Math.min(3,next));const worldX=(anchorX-v.x)/v.zoom,worldY=(anchorY-v.y)/v.zoom;v.x=anchorX-worldX*next;v.y=anchorY-worldY*next;v.zoom=next;markDirty();renderCanvas()}
+  function fit(){const positions=doc.nodes.map(n=>pos(n.id)).filter(Boolean);const w=stage.clientWidth,h=stage.clientHeight;if(!positions.length||!w||!h)return;let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const p of positions){minX=Math.min(minX,p.x-95);minY=Math.min(minY,p.y-55);maxX=Math.max(maxX,p.x+95);maxY=Math.max(maxY,p.y+55)}const zoom=Math.min(1.35,Math.max(.25,Math.min((w-100)/(maxX-minX),(h-100)/(maxY-minY))));view().viewport={x:w/2-(minX+maxX)/2*zoom,y:h/2-(minY+maxY)/2*zoom,zoom};renderCanvas()}
+  function textLines(text){const raw=String(text||'New idea').split('\n');const lines=[];for(const paragraph of raw){let current='';for(const word of paragraph.split(/\s+/)){if((current+' '+word).trim().length>21&&current){lines.push(current);current=word}else current=(current+' '+word).trim()}lines.push(current||' ')}return lines.slice(0,8)}
+  function dimensions(n){const lines=textLines(n.text);const charLength=Math.max(7,...lines.map(l=>l.length));let w=Math.max(94,Math.min(224,charLength*7.15+31)),h=Math.max(45,lines.length*18+23);if(n.shape==='circle'){w=h=Math.max(w,h)+20}else if(n.shape==='ellipse'){w+=24;h+=16}return {w,h,lines}}
+  function onBoundary(n,p,other){const {w,h}=dimensions(n);const dx=other.x-p.x,dy=other.y-p.y;const ang=Math.atan2(dy,dx);if(n.shape==='circle'||n.shape==='ellipse'){return {x:p.x+Math.cos(ang)*(w/2),y:p.y+Math.sin(ang)*(h/2)}}const t=Math.min((w/2)/Math.max(Math.abs(dx),.0001),(h/2)/Math.max(Math.abs(dy),.0001));return {x:p.x+dx*t,y:p.y+dy*t}}
+  function pathPoints(e){const a=node(e.source),b=node(e.target),pa=pos(e.source),pb=pos(e.target);if(!a||!b||!pa||!pb)return[];const mid=(view().routes[e.id]||[]).map(p=>({...p}));const aNext=mid[0]||pb,bPrev=mid[mid.length-1]||pa;return [onBoundary(a,pa,aNext),...mid,onBoundary(b,pb,bPrev)]}
+  function pathOf(points,eid){if(!points.length)return'';if(doc.theme!=='sketch')return 'M'+points.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L');let out=`M ${points[0].x} ${points[0].y}`;let seed=Array.from(eid).reduce((a,c)=>a+c.charCodeAt(0),0);for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],dx=b.x-a.x,dy=b.y-a.y,dist=Math.hypot(dx,dy)||1,off=((seed+i*53)%17-8)/7*2.4;const nx=-dy/dist,ny=dx/dist;const t=.5;out+=` Q ${(a.x+dx*t+nx*off).toFixed(1)} ${(a.y+dy*t+ny*off).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`}return out}
+  function renderEdges(){const preset=theme();let output='';for(const e of doc.edges){const points=pathPoints(e);if(!points.length)continue;const selectedEdge=selected?.kind==='edge'&&selected.id===e.id;const hovering=hoveredEdge===e.id;const d=pathOf(points,e.id);const stroke=preset.dark?'#b6c7e8':doc.theme==='sketch'?'#554d43':'#75849e';const width=preset.widths[e.strength];const dash=preset.dashes[e.strength];const hi=selectedEdge?'#4055bf':stroke;
+    output+=`<g data-edge="${escapeHtml(e.id)}"><path d="${d}" stroke="${hi}" fill="none" stroke-width="${selectedEdge?width+.8:width}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+    if(doc.theme==='blueprint'&&e.strength==='strong')output+=`<path d="${d}" stroke="#151e32" stroke-width=".75" fill="none" pointer-events="none"/>`;
+    output+=`<path class="edge-hit" data-edge="${escapeHtml(e.id)}" d="${d}" stroke="transparent" stroke-width="18" fill="none"/>`;
+    if(hovering||selectedEdge){for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1];const x=(a.x+b.x)/2,y=(a.y+b.y)/2;output+=`<circle class="edge-dot" data-edge="${escapeHtml(e.id)}" data-segment="${i}" cx="${x}" cy="${y}" r="5" fill="#fff" stroke="#6473b5" stroke-width="1.5"/>`;}const bends=view().routes[e.id]||[];bends.forEach((p,i)=>output+=`<circle class="bend-dot" data-edge="${escapeHtml(e.id)}" data-bend="${i}" cx="${p.x}" cy="${p.y}" r="5.5" fill="#4055bf" stroke="#fff" stroke-width="1.7"/>`)}output+='</g>';
+  }edgesEl.innerHTML=output;}
+  function renderNodes(){let output='';const preset=theme();for(const n of doc.nodes){const p=pos(n.id);if(!p)continue;const {w,h,lines}=dimensions(n);const chosen=selected?.kind==='node'&&selected.id===n.id;const hover=hoveredNode===n.id;const corner=n.shape==='rounded'?14:n.shape==='rectangle'?1:Math.min(w,h)/2;
+    output+=`<g class="node-group" data-node="${escapeHtml(n.id)}" transform="translate(${p.x} ${p.y})">`;
+    if(chosen)output+=`<rect x="${-w/2-5}" y="${-h/2-5}" width="${w+10}" height="${h+10}" rx="${corner+5}" fill="none" stroke="#4055bf" stroke-opacity=".56" stroke-width="1.5" stroke-dasharray="4 4" pointer-events="none"/>`;
+    const common=`fill="${preset.dark?'#222e49':n.color}" fill-opacity="${preset.dark?'.55':doc.theme==='sketch'?'.075':'.115'}" stroke="${n.color}" stroke-width="${chosen?2.5:1.5}"`;
+    if(n.shape==='circle'||n.shape==='ellipse')output+=`<ellipse cx="0" cy="0" rx="${w/2}" ry="${h/2}" ${common}/>`;
+    else output+=`<rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="${corner}" ${common}/>`;
+    const y0= -((lines.length-1)*18)/2+4.5;output+=`<text class="node-title" text-anchor="middle" x="0" y="${y0}">`;
+    lines.forEach((line,i)=>output+=`<tspan x="0" dy="${i===0?0:18}">${escapeHtml(line)}</tspan>`);output+='</text>';
+    if(p.pinned)output+=`<g transform="translate(${-w/2+8} ${-h/2+5})" pointer-events="none"><rect width="12" height="12" rx="3" fill="${preset.dark?'#e2e8ff':'#fff'}"/><path d="M3 4.2l5 0M5.5 2.5v5.8" stroke="#4055bf" stroke-width="1.1"/></g>`;
+    if(hover||chosen||gesture?.kind==='connect'&&gesture.from===n.id){output+=`<circle class="port" data-port="${escapeHtml(n.id)}" cx="${w/2+7}" cy="0" r="8.4" fill="${preset.dark?'#263452':'#fff'}" stroke="#4055bf" stroke-width="1.7"/><circle class="port" data-port="${escapeHtml(n.id)}" cx="${w/2+7}" cy="0" r="2.6" fill="#4055bf"/>`}
+    output+='</g>';
+  }nodesEl.innerHTML=output;}
+  function renderInteractions(){let html='';if(gesture?.kind==='connect'){const p=pos(gesture.from),n=node(gesture.from);if(p&&n){const start=onBoundary(n,p,gesture.current);html=`<path d="M ${start.x} ${start.y} L ${gesture.current.x} ${gesture.current.y}" stroke="#4055bf" stroke-width="2" stroke-dasharray="6 5" fill="none" pointer-events="none"/>`}}interactionsEl.innerHTML=html;}
+  function renderCanvas(){const v=view();if(!v)return;const {x,y,zoom}=v.viewport;camera.setAttribute('transform',`translate(${x} ${y}) scale(${zoom})`);stage.style.backgroundSize=`${24*zoom}px ${24*zoom}px`;stage.style.backgroundPosition=`${x}px ${y}px`;stage.dataset.theme=doc.theme;renderEdges();renderNodes();renderInteractions();$('zoomValue').textContent=Math.round(zoom*100)+'%';$('togglePhysics').innerHTML=v.mode==='dynamic'?'❚❚ Freeze':'◌ Relax';$('togglePhysics').classList.toggle('active',v.mode==='dynamic');syncStatus()}
+  function renderTabs(){const tabs=$('tabs');tabs.innerHTML=doc.views.map(v=>`<button class="tab ${v.id===activeViewId?'active':''}" data-tab="${escapeHtml(v.id)}" title="Double-click to rename"><span class="mode-dot ${v.mode==='dynamic'?'live':''}"></span><span class="tab-label">${escapeHtml(v.name)}</span></button>`).join('')+'<button class="tab-action" id="createView" title="New experimental view (same graph, rearranged)">+</button><button class="tab-action" id="duplicateView" title="Duplicate current view">⧉</button>';}
+  function renderInspector(){const v=view(),isNode=selected?.kind==='node',isEdge=selected?.kind==='edge',n=isNode?node(selected.id):null,e=isEdge?edge(selected.id):null;let html=`<div class="inspector-top"><div class="eyebrow">Properties</div><div class="inspector-heading">${n?'Node':e?'Relationship':'Canvas & view'}</div><p class="inspector-description">${n?'An object shared across every view.':e?'A relationship shared across every view.':'Arrange the same graph in different ways.'}</p></div>`;
+    if(n){const p=pos(n.id);html+=`<div class="inspector-group"><div class="group-title">Content</div><div class="field"><label for="nodeText">Text</label><textarea id="nodeText">${escapeHtml(n.text)}</textarea></div><div class="field"><label>Shape</label><div class="chiprow">${[['rounded','Rounded'],['rectangle','Rectangle'],['ellipse','Ellipse'],['circle','Circle']].map(([k,t])=>`<button class="chip ${n.shape===k?'active':''}" data-shape="${k}">${t}</button>`).join('')}</div></div><div class="field"><label>Colour</label><div class="swatches">${COLORS.map(c=>`<button class="swatch ${n.color===c?'active':''}" data-color="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<input aria-label="Custom colour" id="customColor" type="color" value="${n.color}" style="height:26px;width:34px;border:none;background:transparent;padding:0;cursor:pointer"></div></div></div><div class="inspector-group"><div class="group-title">Layout · this view</div><div class="fieldrow"><span>Lock position</span><button class="btn small outlined" id="pinNode">${p.pinned?'Unpin':'Pin node'}</button></div><p class="inspector-description" style="margin:9px 0 0">${p.pinned?'Pinned nodes stay fixed during relaxation.':'Pin a node to anchor the dynamic simulation.'}</p></div><div class="inspector-group"><div class="inspector-buttons"><button class="btn outlined small" id="duplicateNode">Duplicate node</button><button class="btn outlined small danger" id="deleteSelected">Delete</button></div></div>`;}
+    else if(e){html+=`<div class="inspector-group"><div class="group-title">Relationship</div><p class="inspector-description" style="margin-bottom:14px">${escapeHtml(node(e.source)?.text||'?')} ↔ ${escapeHtml(node(e.target)?.text||'?')}</p><div class="field"><label>Semantic strength</label><div class="chiprow">${['strong','medium','weak'].map(t=>`<button class="chip ${e.strength===t?'active':''}" data-strength="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div></div><div class="callout">Strength is <strong>meaning</strong>, not a fixed line width. The active theme decides how to draw it.</div></div><div class="inspector-group"><div class="group-title">Route · this view</div><p class="inspector-description">Hover the line. Drag any small midpoint to create a bend; drag existing bends to edit them.</p><div class="inspector-buttons" style="margin-top:12px"><button class="btn outlined small" id="resetBends">Straighten</button><button class="btn outlined small danger" id="deleteSelected">Delete link</button></div></div>`;}
+    else{const val=v.physics;html+=`<div class="inspector-group"><div class="group-title">Layout</div><div class="fieldrow"><span>Mode</span><strong>${v.mode==='dynamic'?'Dynamic · live':'Static · frozen'}</strong></div><p class="inspector-description" style="margin:9px 0 13px">Relax to rearrange the graph. Freeze to preserve the new positions in this view.</p><div class="inspector-buttons"><button class="btn outlined small" id="renameView">Rename view</button><button class="btn outlined small" id="cloneView">Duplicate view</button>${doc.views.length>1?'<button class="btn outlined small danger" id="removeView">Delete view</button>':''}</div></div><div class="inspector-group"><div class="group-title">Relaxation controls</div>${[['length','Link length',80,320],['repulsion','Repulsion',500,8000],['gap','Minimum gap',0,80]].map(([key,label,min,max])=>`<div class="field"><div class="fieldrow"><label for="ph_${key}">${label}</label><small id="value_${key}">${val[key]}</small></div><input type="range" id="ph_${key}" data-physics="${key}" min="${min}" max="${max}" step="${key==='repulsion'?100:5}" value="${val[key]}"></div>`).join('')}<div class="callout">Pinned nodes are anchors. Dragging an unpinned node in dynamic mode temporarily holds it while the others respond.</div></div>`;}
+    html+=`<div class="inspector-group"><div class="group-title">Global theme</div><div class="field"><select id="themeSelect" aria-label="Global visual theme">${Object.entries(THEMES).map(([k,t])=>`<option value="${k}" ${doc.theme===k?'selected':''}>${t.label}</option>`).join('')}</select></div><p class="inspector-description" style="margin-top:10px">Changes appearance across all views, without changing the network.</p></div>`;
+    $('inspector').innerHTML=html;}
+  function renderUI(){renderCanvas();renderTabs();renderInspector()}
+  function setView(id,autoFit=false){if(!doc.views.some(v=>v.id===id))return;editingDone(true);activeViewId=id;selected=null;hoveredEdge=null;hoveredNode=null;velocities={};ensurePositions(view());if(autoFit || !view().viewport.x&&!view().viewport.y)fit();renderUI();if(view().mode==='dynamic')startPhysics()}
+  function addNodeAt(x,y,connectFrom=null){const n={id:uid('n'),text:'New idea',shape:'rounded',color:COLORS[doc.nodes.length%COLORS.length]};doc.nodes.push(n);for(const v of doc.views){const src=connectFrom&&v.positions[connectFrom];v.positions[n.id]=v.id===activeViewId?{x,y,pinned:false}:src?{x:src.x+155,y:src.y+60,pinned:false}:{x,y,pinned:false}};if(connectFrom)connectNodes(connectFrom,n.id);selected={kind:'node',id:n.id};markDirty();renderUI();return n}
+  function connectNodes(a,b){if(a===b||!node(a)||!node(b))return;let existing=doc.edges.find(e=>(e.source===a&&e.target===b)||(e.source===b&&e.target===a));if(existing){selected={kind:'edge',id:existing.id};return existing}const e={id:uid('e'),source:a,target:b,strength:'medium'};doc.edges.push(e);markDirty();return e}
+  function removeSelected(){if(!selected)return;if(selected.kind==='node'){const id=selected.id;doc.nodes=doc.nodes.filter(n=>n.id!==id);const removed=doc.edges.filter(e=>e.source===id||e.target===id).map(e=>e.id);doc.edges=doc.edges.filter(e=>!removed.includes(e.id));for(const v of doc.views){delete v.positions[id];for(const eid of removed)delete v.routes[eid]}}else{const id=selected.id;doc.edges=doc.edges.filter(e=>e.id!==id);for(const v of doc.views)delete v.routes[id]}selected=null;markDirty();renderUI()}
+  function duplicateCurrentView(rearrange=false){const source=view();const copy=clone(source);copy.id=uid('view');copy.name=rearrange?`Exploration ${String(doc.views.length+1).padStart(2,'0')}`:source.name+' copy';copy.mode=rearrange?'dynamic':'static';copy.routes=rearrange?{}:copy.routes;if(rearrange){let i=0;for(const p of Object.values(copy.positions)){const ang=++i*2.399;p.x+=Math.cos(ang)*70;p.y+=Math.sin(ang)*70;p.pinned=false}}doc.views.push(copy);markDirty();setView(copy.id);notice(rearrange?'New relaxed view created':'View duplicated — original graph preserved')}
+  function editStart(id){if(!node(id))return;editingDone(true);selected={kind:'node',id};editingId=id;const p=pos(id),pt=worldToScreen(p.x,p.y);const el=$('inlineEditor');el.value=node(id).text;el.style.display='block';el.style.left=Math.max(8,Math.min(stage.clientWidth-214,pt.x-103))+'px';el.style.top=Math.max(10,Math.min(stage.clientHeight-85,pt.y-33))+'px';el.focus();el.select();renderNodes();renderInspector()}
+  function editingDone(save){if(!editingId)return;const id=editingId,el=$('inlineEditor');editingId=null;el.style.display='none';if(save&&node(id)&&node(id).text!==el.value){node(id).text=el.value.trim()||'Untitled';markDirty();renderUI()}}
+  function togglePhysics(){const v=view();if(v.mode==='dynamic'){v.mode='static';stopPhysics();notice('Frozen — positions kept in this view')}else{v.mode='dynamic';velocities={};startPhysics();notice('Relaxing — drag nodes or pin anchors')}markDirty();renderUI()}
+  function stopPhysics(){if(raf)cancelAnimationFrame(raf);raf=0}
+  function startPhysics(){stopPhysics();if(view().mode!=='dynamic')return;let count=0;let lastTime=0;const run=(timestamp)=>{if(view().mode!=='dynamic'){raf=0;return}if(timestamp-lastTime>20){stepPhysics();lastTime=timestamp;renderCanvas();if(count++%100===0)markDirty()}raf=requestAnimationFrame(run)};raf=requestAnimationFrame(run)}
+  function stepPhysics(){const v=view(),positions=v.positions,physics=v.physics,nodes=doc.nodes;const forces={};for(const n of nodes)forces[n.id]={x:0,y:0};
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const a=nodes[i],b=nodes[j],pa=positions[a.id],pb=positions[b.id];let dx=pb.x-pa.x,dy=pb.y-pa.y;let d=Math.max(1,Math.hypot(dx,dy));if(d<.001){dx=.1;dy=.1}const ra=dimensions(a),rb=dimensions(b);const minDist=Math.max(ra.w,ra.h)/2+Math.max(rb.w,rb.h)/2+physics.gap;const f=Math.min(12,physics.repulsion/(d*d)+(d<minDist?(minDist-d)*.15:0));const fx=dx/d*f,fy=dy/d*f;forces[a.id].x-=fx;forces[a.id].y-=fy;forces[b.id].x+=fx;forces[b.id].y+=fy}
+    for(const e of doc.edges){const a=positions[e.source],b=positions[e.target];if(!a||!b)continue;const dx=b.x-a.x,dy=b.y-a.y,d=Math.max(1,Math.hypot(dx,dy));const strength=e.strength==='strong'?1.35:e.strength==='weak'?.68:1;const preferred=physics.length/Math.sqrt(strength);const f=Math.min(6,Math.max(-6,(d-preferred)*.009*strength));const fx=dx/d*f,fy=dy/d*f;forces[e.source].x+=fx;forces[e.source].y+=fy;forces[e.target].x-=fx;forces[e.target].y-=fy}
+    const center={x:0,y:0};for(const n of nodes){center.x+=positions[n.id].x;center.y+=positions[n.id].y}center.x/=Math.max(1,nodes.length);center.y/=Math.max(1,nodes.length);
+    for(const n of nodes){const p=positions[n.id];let vel=velocities[n.id]||(velocities[n.id]={x:0,y:0});if(p.pinned||(gesture?.kind==='move'&&gesture.id===n.id)){vel.x=vel.y=0;continue}vel.x=(vel.x+forces[n.id].x-(p.x-center.x)*.0008)*.83;vel.y=(vel.y+forces[n.id].y-(p.y-center.y)*.0008)*.83;p.x+=Math.max(-9,Math.min(9,vel.x));p.y+=Math.max(-9,Math.min(9,vel.y))}
+  }
+  function onPointerDown(event){if(event.button!==0&&event.pointerType==='mouse')return;const target=event.target;const p=screenToWorld(event.clientX,event.clientY);const port=target.closest('[data-port]');const nEl=target.closest('[data-node]');const bend=target.closest('[data-bend]');const seg=target.closest('[data-segment]');const eEl=target.closest('[data-edge]');
+    editingDone(true);canvas.setPointerCapture(event.pointerId);
+    if(port){const id=port.dataset.port;gesture={kind:'connect',from:id,current:p,moved:false};selected={kind:'node',id};}
+    else if(bend){const id=bend.dataset.edge,idx=Number(bend.dataset.bend);selected={kind:'edge',id};gesture={kind:'bend',id,index:idx};}
+    else if(seg){const id=seg.dataset.edge,idx=Number(seg.dataset.segment);const points=pathPoints(edge(id));const mid={x:(points[idx].x+points[idx+1].x)/2,y:(points[idx].y+points[idx+1].y)/2};const r=view().routes[id]||(view().routes[id]=[]);r.splice(idx,0,mid);selected={kind:'edge',id};gesture={kind:'bend',id,index:idx};markDirty();}
+    else if(nEl){const id=nEl.dataset.node;selected={kind:'node',id};const pt=pos(id);gesture={kind:'move',id,start:p,origin:{x:pt.x,y:pt.y},moved:false}}
+    else if(eEl){selected={kind:'edge',id:eEl.dataset.edge};gesture={kind:'click'};}
+    else{selected=null;const vp=view().viewport;gesture={kind:'pan',startX:event.clientX,startY:event.clientY,x:vp.x,y:vp.y,moved:false};canvas.classList.add('panning')}
+    renderUI();event.preventDefault();}
+  function onPointerMove(event){const p=screenToWorld(event.clientX,event.clientY);if(gesture){if(gesture.kind==='connect'){gesture.current=p;gesture.moved=true;renderInteractions();return}if(gesture.kind==='move'){const pt=pos(gesture.id),zoom=view().viewport.zoom;pt.x=gesture.origin.x+p.x-gesture.start.x;pt.y=gesture.origin.y+p.y-gesture.start.y;gesture.moved=true;renderCanvas();return}if(gesture.kind==='bend'){const point=view().routes[gesture.id]?.[gesture.index];if(point){point.x=p.x;point.y=p.y;renderCanvas()}return}if(gesture.kind==='pan'){const vp=view().viewport;vp.x=gesture.x+event.clientX-gesture.startX;vp.y=gesture.y+event.clientY-gesture.startY;gesture.moved=true;renderCanvas();return}return}
+    const n=event.target.closest('[data-node]')?.dataset.node||null;const e=event.target.closest('[data-edge]')?.dataset.edge||null;if(n!==hoveredNode||e!==hoveredEdge){hoveredNode=n;hoveredEdge=e;renderNodes();renderEdges();}}
+  function onPointerUp(event){if(!gesture)return;const g=gesture;gesture=null;canvas.classList.remove('panning');try{canvas.releasePointerCapture(event.pointerId)}catch(_){ }const p=screenToWorld(event.clientX,event.clientY);
+    if(g.kind==='connect'){const els=document.elementsFromPoint(event.clientX,event.clientY);const target=els.map(el=>el.closest?.('[data-node]')).find(Boolean);const targetId=target?.dataset.node;if(targetId&&targetId!==g.from){const linked=connectNodes(g.from,targetId);if(linked)selected={kind:'edge',id:linked.id}}else if(!targetId){const n=addNodeAt(p.x,p.y,g.from);editStart(n.id);notice('Connected to a new node')}markDirty();}
+    if(g.kind==='move'&&g.moved)markDirty();if(g.kind==='bend')markDirty();if(g.kind==='pan'&&g.moved)markDirty();renderUI();}
+  function cancelGesture(){if(gesture){gesture=null;canvas.classList.remove('panning');renderCanvas()}}
+  function onDblclick(event){const nEl=event.target.closest('[data-node]');if(nEl){editStart(nEl.dataset.node);return}if(event.target.closest('[data-edge]'))return;const p=screenToWorld(event.clientX,event.clientY);const n=addNodeAt(p.x,p.y);editStart(n.id)}
+  function updateInspector(event){const target=event.target;const n=selected?.kind==='node'?node(selected.id):null,e=selected?.kind==='edge'?edge(selected.id):null;
+    if(target.id==='nodeText'&&n){n.text=target.value;markDirty();renderCanvas();return}
+    if(target.id==='customColor'&&n){n.color=target.value;markDirty();renderNodes();return}
+    if(target.dataset.physics){view().physics[target.dataset.physics]=Number(target.value);$('value_'+target.dataset.physics).textContent=target.value;markDirty();return}
+    if(target.id==='themeSelect'){doc.theme=target.value;markDirty();renderCanvas();return}
+  }
+  function clickInspector(event){const btn=event.target.closest('button');if(!btn)return;const n=selected?.kind==='node'?node(selected.id):null,e=selected?.kind==='edge'?edge(selected.id):null;
+    if(n&&btn.dataset.shape){n.shape=btn.dataset.shape;markDirty();renderUI()}
+    else if(n&&btn.dataset.color){n.color=btn.dataset.color;markDirty();renderUI()}
+    else if(e&&btn.dataset.strength){e.strength=btn.dataset.strength;markDirty();renderUI()}
+    else if(btn.id==='deleteSelected'){removeSelected()}
+    else if(btn.id==='pinNode'&&n){pos(n.id).pinned=!pos(n.id).pinned;markDirty();renderUI()}
+    else if(btn.id==='duplicateNode'&&n){const p=pos(n.id),newN=addNodeAt(p.x+60,p.y+60);newN.text=n.text;newN.shape=n.shape;newN.color=n.color;markDirty();renderUI()}
+    else if(btn.id==='resetBends'&&e){view().routes[e.id]=[];markDirty();renderUI()}
+    else if(btn.id==='renameView'){const name=prompt('Rename view',view().name);if(name?.trim()){view().name=name.trim();markDirty();renderUI()}}
+    else if(btn.id==='cloneView'){duplicateCurrentView(false)}
+    else if(btn.id==='removeView'){if(doc.views.length<=1)return;if(confirm('Delete this view? The underlying nodes and links will remain.')){doc.views=doc.views.filter(v=>v.id!==activeViewId);markDirty();setView(doc.views[0].id)}}
+  }
+  async function loadFile(file,handle=null){try{const data=JSON.parse(await file.text());setDoc(data);fileHandle=handle;$('status').textContent=handle?'Linked to '+file.name:'Opened '+file.name+' · Save to export changes';notice('Map opened: '+file.name)}catch(err){notice('Could not open file: '+err.message)}}
+  async function openFile(){if(window.showOpenFilePicker){try{const [handle]=await window.showOpenFilePicker({types:[{description:'Mindmap JSON',accept:{'application/json':['.json']}}],multiple:false});const file=await handle.getFile();await loadFile(file,handle);return}catch(err){if(err?.name==='AbortError')return;notice('Using standard file picker instead')}}$('fileInput').click()}
+  async function saveFile(forceAs=false){if(view().mode==='dynamic'){/* Coordinates are saved as a snapshot; physics continues. */}const serialized=JSON.stringify(doc,null,2)+'\n';
+    if(!fileHandle&&window.showSaveFilePicker){try{fileHandle=await window.showSaveFilePicker({suggestedName:(doc.title||'mindmap').replace(/[\\/:*?"<>|]/g,'-')+'.json',types:[{description:'Mindmap JSON',accept:{'application/json':['.json']}}]})}catch(err){if(err?.name==='AbortError')return;notice('File-system saving unavailable; downloading JSON')}}
+    if(fileHandle){try{const writable=await fileHandle.createWritable();await writable.write(serialized);await writable.close();markClean();notice('Saved to local JSON file');return}catch(err){fileHandle=null;notice('Cannot write linked file — downloading JSON instead')}}
+    const url=URL.createObjectURL(new Blob([serialized],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=(doc.title||'mindmap').replace(/[\\/:*?"<>|]/g,'-')+'.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);markClean();notice('JSON downloaded — keep it as your source file');}
+  function newFile(){if(dirty&&!confirm('Discard unsaved changes and start a new map?'))return;stopPhysics();doc=initialDoc();activeViewId=doc.views[0].id;doc.nodes=[];doc.edges=[];doc.views[0].positions={};fileHandle=null;selected=null;dirty=false;$('title').value=doc.title;markClean('New map · not yet saved');renderUI();notice('New empty map — double-click the canvas to begin')}
+  canvas.addEventListener('pointerdown',onPointerDown);canvas.addEventListener('pointermove',onPointerMove);canvas.addEventListener('pointerup',onPointerUp);canvas.addEventListener('pointercancel',cancelGesture);canvas.addEventListener('dblclick',onDblclick);
+  canvas.addEventListener('wheel',ev=>{ev.preventDefault();const r=svgRect();setZoom(view().viewport.zoom*Math.exp(-ev.deltaY*.001),ev.clientX-r.left,ev.clientY-r.top)},{passive:false});
+  $('tabs').addEventListener('click',ev=>{const tab=ev.target.closest('[data-tab]');if(tab){stopPhysics();setView(tab.dataset.tab)}else if(ev.target.closest('#createView'))duplicateCurrentView(true);else if(ev.target.closest('#duplicateView'))duplicateCurrentView(false)});
+  $('tabs').addEventListener('dblclick',ev=>{const tab=ev.target.closest('[data-tab]');if(tab){const target=doc.views.find(v=>v.id===tab.dataset.tab);const name=prompt('Rename view',target.name);if(name?.trim()){target.name=name.trim();markDirty();renderTabs()}}});
+  $('inspector').addEventListener('input',updateInspector);$('inspector').addEventListener('change',updateInspector);$('inspector').addEventListener('click',clickInspector);
+  $('addNode').onclick=()=>{const v=view().viewport;const n=addNodeAt((stage.clientWidth/2-v.x)/v.zoom,(stage.clientHeight/2-v.y)/v.zoom);editStart(n.id)};
+  $('togglePhysics').onclick=togglePhysics;$('fitView').onclick=fit;$('zoomIn').onclick=()=>setZoom(view().viewport.zoom*1.2);$('zoomOut').onclick=()=>setZoom(view().viewport.zoom/1.2);$('zoomValue').onclick=()=>setZoom(1);
+  $('toggleInspector').onclick=()=>{$('inspector').classList.toggle('open');$('toggleInspector').classList.toggle('active',$('inspector').classList.contains('open'))};
+  $('openFile').onclick=openFile;$('saveFile').onclick=()=>saveFile();$('newFile').onclick=newFile;
+  $('fileInput').onchange=async e=>{const file=e.target.files?.[0];if(file)await loadFile(file);e.target.value=''};
+  $('title').oninput=event=>{doc.title=event.target.value;markDirty()};
+  $('inlineEditor').addEventListener('blur',()=>editingDone(true));$('inlineEditor').addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();editingDone(false)}if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();editingDone(true)}});
+  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();editingDone(true);saveFile();return}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='o'){event.preventDefault();openFile();return}const editing=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);if(editing)return;if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();removeSelected()}if(event.key==='Escape'){cancelGesture();selected=null;renderUI()}if(event.key===' '&&event.target===document.body){event.preventDefault();togglePhysics()}});
+  document.addEventListener('dragover',event=>event.preventDefault());document.addEventListener('drop',async event=>{event.preventDefault();const f=event.dataTransfer?.files?.[0];if(f?.name.endsWith('.json'))await loadFile(f)});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPhysics();else if(view().mode==='dynamic')startPhysics()});window.addEventListener('resize',renderCanvas);window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue=''}});
+  $('title').value=doc.title;setView(activeViewId,true);if('serviceWorker' in navigator && location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "Mindmap — Local-first graph canvas",
+  "short_name": "Mindmap",
+  "description": "One graph, many maps. Work with your own local JSON files.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f9fafc",
+  "theme_color": "#f9fafc",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
