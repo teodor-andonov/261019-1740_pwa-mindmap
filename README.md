@@ -1,115 +1,50 @@
-# Mindmap
+# Mindmap V2
 
-**One graph, many maps.** A lightweight, offline-capable, local-first mind mapping PWA.
+**The canvas is the application.** A local-first PWA for independent mind maps stored together in one portable file.
 
-Mindmap deliberately uses a simple data model: **nodes**, **undirected relationships**, and **views**. Each view can place the same graph differently, switch between manual and force-relaxed positioning, and freeze an interesting arrangement.
+## Run
+Published app: https://teodor-andonov.github.io/261019-1740_pwa-mindmap/
 
-## Start
-
-No installation, npm, build tool, or third-party dependencies required.
-
-1. Unzip the project.
-2. Run a local server from the project directory:
-   ```bash
-   python -m http.server 8080
-   ```
-3. Open `http://localhost:8080/` in Chrome or Edge.
-4. Use **Save** to create your local JSON file. On supported browsers the app can continue writing to that file during the current session, each time you click Save.
-
-You can open `index.html` directly for quick experiments, but PWA installation and direct file access require HTTPS or localhost. For browsers without the direct file picker, opening and saving uses file input and JSON downloads.
-
-## Main gestures
-
-| Action | Interaction |
-|---|---|
-| Add node | `+ Node` or double-click empty canvas |
-| Edit text | Double-click node or edit in properties panel |
-| Move node | Drag node |
-| Create a relationship | Drag small circular connector on a selected / hovered node onto another node |
-| Create a linked node | Drag connector into empty space, then type |
-| Select/edit relationship | Click line, set semantic strength in properties panel |
-| Bend line | Hover or select line, drag small midpoint handle; repeat for additional bends |
-| Adjust bend | Drag solid bend handle |
-| Pan | Drag empty canvas |
-| Zoom | Mouse wheel, `+/-` controls, Fit |
-| Arrange dynamically | **Relax**; adjust spring, repulsion, gap in properties panel |
-| Freeze | **Freeze** (maintains current positions) |
-| Anchor node | Select node → Pin node |
-| Duplicate view | `⧉` next to view tabs |
-| Experimental view | `+` next to view tabs, which starts an altered live layout |
-| Delete | Select node or edge → `Delete` key |
-| Save | `Ctrl+S` or Save button |
-| Open | `Ctrl+O`, Open button, or drag/drop JSON file |
-
-## Data ownership
-
-- One portable `.json` file is the source of truth for one map.
-- The app does **not** use a backend, account, cloud sync, or proprietary file format.
-- No persistent user content is stored in browser storage. Unsaved changes are held in memory only.
-- Saving is explicit, not automatic. Close the file only after saving it.
-- The PWA service worker only caches **application code and icon files** so the interface can load offline, never your project JSON.
+Or locally, run `python -m http.server 8080` from the repository root. No npm, build step, backend or account.
 
 ## Architecture
+- A `.mindmap` file is plain JSON (`version: 2`), holding multiple **independent diagrams**. Duplicate creates entirely separate nodes, edges and positions; changes do not propagate between diagrams.
+- Each diagram owns its shelf, nodes, undirected links, routes, viewport, pins and physics. Shelf hides nodes without deleting them or their connections.
+- The document stores **three default node styles and three default link styles**; each node or link references a preset via `styleId`. Presets define appearance only, never connection semantics. Changing a preset affects all its objects in the current file. The JSON schema also supports local overrides, and the UI can reset them.
+- Opening an old V1 `.json` converts each of its former shared-graph views into a **separate independent V2 diagram**. Then save the result as `.mindmap`.
+- Versioned service worker caches only the static app shell, not your document.
 
-- `index.html`: all UI, styling, graph editing, SVG rendering and force simulation in one file
-- `sw.js`: offline application-shell service worker
-- `manifest.webmanifest`: PWA manifest
-- `icon-192.png`, `icon-512.png`: installable app icons
-- `AGENT_BRIEF.md`: product rationale, data contract, future iterations
+## Canvas controls
+| Action | How |
+|---|---|
+| New node | Bottom +, N, or double-click empty canvas |
+| Edit / move | Double-click node / drag it |
+| Multi-select | Shift-click |
+| Connect | Drag a node's port to another node |
+| Connected node | Drag a port to empty canvas |
+| Link bends | Hover/select line, drag segment midpoint; drag bend to reposition |
+| Shelf / restore | Select nodes → archive; open shelf and click/drag saved nodes |
+| Shelf all | Shelf drawer archive button |
+| Diagram management | Left preview rail: +, three-dot menu, double-click to rename |
+| Physics | Right separate Relax/Freeze control (Space), settings via slider icon |
+| Pin | Select node → pin or P |
+| Pan / zoom / fit | Drag empty background, wheel, fit or F |
+| Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |
+| Save / Save As / Open | Ctrl+S / Ctrl+Shift+S / Ctrl+O |
 
-## JSON schema
+Top-left floating file controls show the document name, but deliberately no redundant app branding. The sidebar, shelf and property/simulation panels can be collapsed, and most tools are icon-first with tooltips.
 
-```json
-{
-  "version": 1,
-  "id": "map_...",
-  "title": "My map",
-  "theme": "minimal",
-  "nodes": [
-    { "id": "n_a", "text": "Idea A", "shape": "rounded", "color": "#4055bf" },
-    { "id": "n_b", "text": "Idea B", "shape": "ellipse", "color": "#1c9e89" }
-  ],
-  "edges": [
-    { "id": "e_ab", "source": "n_a", "target": "n_b", "strength": "medium" }
-  ],
-  "views": [
-    {
-      "id": "v_1", "name": "My first view", "mode": "static",
-      "positions": {
-        "n_a": { "x": -100, "y": 0, "pinned": false },
-        "n_b": { "x": 100, "y": 0, "pinned": true }
-      },
-      "routes": { "e_ab": [{ "x": 0, "y": -40 }] },
-      "physics": { "length": 165, "repulsion": 2400, "gap": 20 },
-      "viewport": { "x": 400, "y": 250, "zoom": 1 }
-    }
-  ]
-}
-```
+## File association
+The PWA manifest declares `.mindmap` and `.json` file handlers on supporting desktop Chromium installs. Registration depends on OS/browser support and user permissions. If file associations or direct file access aren't available, the app still opens local files and downloads portable `.mindmap` files. Saving is explicit (amber dot shows unsaved edits).
 
-Node styling and relationship strength are **global graph data**; node positions, pins and route bends are **per view**. Themes are global. If a new node is created in one view, it is also made available in all the others.
+## Files
+- `index.html` — complete dependency-free app and renderer
+- `manifest.webmanifest` — installation and file handlers
+- `sw.js` — offline app-shell cache
+- `AGENT_BRIEF.md` — design intent, architecture and decisions
+- `ROADMAP.md` — next milestones and quality work
 
-The file is plain JSON and human/agent-editable. IDs must be unique. Links with missing endpoints are ignored on load. Dynamic views reopen frozen at their saved positions, to avoid unexpected movement on file opening.
+GitHub Pages deploys directly from `main` / `/(root)`; no custom Actions.
 
-## Publish to GitHub Pages
-
-1. Create a **public** repository, e.g. `mindmap-pwa`.
-2. Add `index.html`, `sw.js`, `manifest.webmanifest`, both icon files, `README.md`, and `AGENT_BRIEF.md` to the repository root.
-3. In repository **Settings → Pages**, select **Deploy from a branch**, `main`, `/(root)` and Save.
-4. Visit the URL GitHub Pages provides. The PWA can be installed on compatible browsers. The web host stores only application code; your JSON maps stay on your own device.
-
-GitHub Pages' HTTPS and project sub-path work with the relative asset paths in this package. The repository is already created; configure GitHub Pages in **Settings → Pages** to make the site live.
-
-## Limitations of this prototype
-
-- The in-house physics engine is designed for small/medium diagrams, not thousands of nodes.
-- Layout is 2D, with undirected edges only. Edge strength influences spring length, but there are no arrowheads or hierarchy.
-- Each view shows the full graph (no per-view filters/hidden nodes yet).
-- Manual route points are absolute 2D coordinates per view. No obstacle-avoiding smart edge routing.
-- No undo/redo, multi-select, rich text, labels on edges, group containers, attachments, collaboration, or image nodes yet.
-- No autosave. Use Save often.
-- The app is built and interaction-tested in headless Chromium; installation via GitHub Pages and offline lifecycle are not yet live-deployment tested.
-
-## Testing
-
-JavaScript syntax checks, browser rendering, creating nodes and links, editing text, switching views, pinning, physics freezing, bending edges, and exporting / reopening JSON were exercised in headless Chromium. A full accessibility, touch/mobile, and offline-network test pass remains appropriate before treating this as production software.
+## Known limits
+This is a foundation release. Touch/pinch gestures, per-object style override editing, arbitrary preset creation, conflict-safe autosaving and large-graph physics need further work. No images, rich text, collaboration or cloud sync yet.
