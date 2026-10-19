@@ -81,3 +81,16 @@ Next focus: polish handling of many presets, per-object overrides and cross-devi
 - [x] Browser tests: gestures, inline editing, preset inheritance, v2 import/v3 save, bend removal, Undo, autosave handle, mobile visual smoke
 - [ ] Manual verification on physical Windows/Android hardware; installed file association, touch, and persistent recovery storage
 - [ ] Improve late queued/autosave overlapping manual writes, recovery conflict handling and long-label text reflow
+
+
+## V2.5 — Complete: grayscale, rail, ports
+
+- [x] Full grayscale application chrome; custom canvas object colours remain supported
+- [x] Entire-screen dark-mode inversion without changing saved colours
+- [x] Consolidate Diagrams, Styles, Simulation, Shelf into one collapsible left sidebar
+- [x] Remove duplicate right panels and separate floating shelf
+- [x] Four outward-offset connector handles with larger grab regions and accurate link-start origins
+- [x] Fix older CSS hover-media nesting bug affecting touch devices
+- [x] Preserve version 3 files and bump offline PWA cache
+
+**Next:** validate Windows PWA file association and touch behaviour on actual hardware, improve shelving drag affordance, and harden autosave/recovery races.

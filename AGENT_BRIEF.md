@@ -70,3 +70,12 @@ The last-selected preset in each category becomes the active default for subsequ
 Autosave is conditional: a previously approved File System Access handle can be written without re-prompting. Independently maintain an IndexedDB session recovery draft; it is not equivalent to saving a portable file, and the unsaved indicator must only clear after a successful disk write or explicit download. The service worker caches app assets only.
 
 V2.4 regression scope: default marquee, right pan, bend deletion, middle click + undo, group drag, inline editing, style defaults, independent-map preset edits, V2→V3 migration, saved JSON roundtrip, mobile collapsed controls, focus, reduced motion and offline cache update.
+
+
+## V2.5 interface contract
+
+- The editor is a canvas-first application: **one unified, collapsible left sidebar** (Diagrams, Styles, Simulation, Shelf), a quiet file toolbar above, and a minimal bottom tool strip. Do not resurrect separate right properties/simulation panels.
+- Every *application chrome* colour must be neutral/achromatic. Styles stored for graph objects can contain arbitrary RGBA hex colours.
+- Dark mode uses **one root inversion filter**; it must not do additional per-object dark ink substitution or edit the stored JSON. Check colour controls and chrome after inversion.
+- When a node is selected or hovered, show four visibly larger connector ports at top/right/bottom/left **offset outward** from the object's outline, with generous invisible hit zones. Connecting from a port should visually start at that port. Keep the selection toolbar clear of the top port.
+- Interaction tests must cover mobile/touch CSS, gesture hit-testing, new-node drag, shelf restoration, simulation, dark invert, save/reopen, and v3 compatibility.

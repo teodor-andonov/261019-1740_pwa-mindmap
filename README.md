@@ -91,3 +91,12 @@ No additional content types, dependencies, server or build tools. The core file/
 - **Autosave:** linked files are automatically written after a short idle period only if the browser has already granted write permission. All documents also attempt IndexedDB recovery snapshots, but **browser recovery is not a disk file**. Use Save/Save As to export when direct access is unavailable.
 - **File format:** `.mindmap` is now schema v3 (`maps[].styles`, `maps[].defaultNodeStyleId`, `maps[].defaultLinkStyleId`), with automatic migration from V1/V2 files. Back up important old files before saving migrated documents.
 - Installable PWA, same URL and static GitHub Pages workflow. No account or backend is introduced.
+
+
+## V2.5 — monochrome canvas and unified sidebar
+
+- Everything in application chrome uses greyscale colours. Diagram content may still use custom colours.
+- The dark-mode toggle inverts the **whole rendered page** (UI, canvas, diagrams, and colours). It leaves JSON colour values unchanged. With coloured custom styles, what appears on screen is the inverse colour in dark mode.
+- One collapsible left rail hosts four icon tabs: **Diagrams, Styles, Simulation, Shelf**. The former floating right panels and floating shelf are removed. The file toolbar and small bottom tool strip remain.
+- Each node has **four larger, offset connection ports**, one on each side. Drag any port to another node or blank canvas. Selection toolbars sit above the top port to prevent obstruction.
+- The app and mobile sidebar CSS were repaired for non-hover devices. The existing v3 `.mindmap` schema remains unchanged.
