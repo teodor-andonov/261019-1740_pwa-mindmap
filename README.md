@@ -8,7 +8,10 @@ Published app: https://teodor-andonov.github.io/261019-1740_pwa-mindmap/
 Or locally, run `python -m http.server 8080` from the repository root. No npm, build step, backend or account.
 
 ## Architecture
-- A `.mindmap` file is plain JSON (`version: 2`), holding multiple **independent diagrams**. Duplicate creates entirely separate nodes, edges and positions; changes do not propagate between diagrams.
+
+**Current schema:** v3 has `maps[].styles`, `maps[].defaultNodeStyleId`, and `maps[].defaultLinkStyleId`. Older V1/V2 files are migrated on open, and the migrated document is written only when you Save.
+
+- A `.mindmap` file is plain JSON (`version: 3`), holding multiple **independent diagrams**. Duplicate creates entirely separate nodes, edges and positions; changes do not propagate between diagrams.
 - Each diagram owns its shelf, nodes, undirected links, routes, viewport, pins and physics. Shelf hides nodes without deleting them or their connections.
 - The document stores **three default node styles and three default link styles**; each node or link references a preset via `styleId`. Presets define appearance only, never connection semantics. Changing a preset affects all its objects in the current file. The JSON schema also supports local overrides, and the UI can reset them.
 - Opening an old V1 `.json` converts each of its former shared-graph views into a **separate independent V2 diagram**. Then save the result as `.mindmap`.
