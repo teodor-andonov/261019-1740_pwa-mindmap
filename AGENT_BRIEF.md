@@ -55,3 +55,18 @@ Motion must clarify placement and state instead of decorating the canvas. Fit an
 Curved connections are an SVG representation of existing `bends` coordinates, using a C1-continuous interpolating spline through node boundary endpoints and user bend points; no extra Bézier handles or file migration. Hit-testing must use exactly the visible curve. Existing bend handles remain draggable; right-click one to delete it, with undo support.
 
 Style presets are document-wide definitions referenced across independent diagrams. New files get three black/white transparent-fill node styles and three black link styles; old files retain custom colour schemes. Arbitrarily many presets are supported. On preset deletion, references in every diagram are reassigned safely. Colour editing preserves opacity when RGB changes and vice versa; use `#RRGGBBAA` for alpha. Dark mode is an app preference, separate from portable file data, and makes default black ink legible without mutating styles.
+
+
+## V2.4 — authoritative decisions (supersede earlier contrary guidance)
+
+**Styles are per diagram** now: document v3 contains only title, maps; each map carries styles, defaultNodeStyleId and defaultLinkStyleId. Duplicating a diagram clones styles and its node/link data. V2 files with document-wide styles migrate by cloning styles into every map. V1 still migrates via v2.
+
+The canvas owns the experience: left drag blank area marquee-selects, right drag anywhere pans, Shift modifies selection, right-click on a bend deletes it. Middle-click directly deletes nodes, edges or authored bends and must always be undoable. Keep mouse gestures immediate and avoid moving the camera on left click.
+
+Double-click edits the label *inside the shape* with typography, bounds and colours matched to that node, not a detached popup. Selecting objects reveals a small anchored toolbar with style swatches, pin, shelf and delete. Keep the right floating panel for styles only, with a compact preset editor and a separate simulation panel; remove duplicate toolbar actions. A focus toggle hides the chrome, retaining an accessible exit control.
+
+The last-selected preset in each category becomes the active default for subsequent nodes/links in that diagram. Prefer sparse discrete type sizes, weights, strokes, rounding and opacity stops over arbitrarily fine controls.
+
+Autosave is conditional: a previously approved File System Access handle can be written without re-prompting. Independently maintain an IndexedDB session recovery draft; it is not equivalent to saving a portable file, and the unsaved indicator must only clear after a successful disk write or explicit download. The service worker caches app assets only.
+
+V2.4 regression scope: default marquee, right pan, bend deletion, middle click + undo, group drag, inline editing, style defaults, independent-map preset edits, V2→V3 migration, saved JSON roundtrip, mobile collapsed controls, focus, reduced motion and offline cache update.

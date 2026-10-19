@@ -68,3 +68,16 @@ Still to refine: native touch pinch gestures, diagram hit-target accessibility, 
 - [ ] Physical touchscreen and Windows installed PWA validation
 
 Next focus: polish handling of many presets, per-object overrides and cross-device gestures.
+
+
+## V2.4 — Canvas-first simplification
+- [x] Left-drag marquee, right-drag pan, right-click bend deletion; middle-click node/link/bend deletion with Undo
+- [x] On-object inline text editor; anchored selection style/pin/shelf/delete toolbar
+- [x] Per-diagram styles and last-used node/link defaults; independent style changes in duplicated maps
+- [x] Version 3 `.mindmap` migration from previous v1/v2 files
+- [x] Compact discrete style controls, separate simulation, mobile-collapsed palette
+- [x] Focus mode hides floating chrome, retains exit affordance
+- [x] Best-effort linked-file autosave (no new permission prompts), IndexedDB session recovery
+- [x] Browser tests: gestures, inline editing, preset inheritance, v2 import/v3 save, bend removal, Undo, autosave handle, mobile visual smoke
+- [ ] Manual verification on physical Windows/Android hardware; installed file association, touch, and persistent recovery storage
+- [ ] Improve late queued/autosave overlapping manual writes, recovery conflict handling and long-label text reflow

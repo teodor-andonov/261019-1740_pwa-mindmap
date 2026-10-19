@@ -1,4 +1,4 @@
-# Mindmap V2
+# Mindmap V2.4
 
 **The canvas is the application.** A local-first PWA for independent mind maps stored together in one portable file.
 
@@ -76,3 +76,15 @@ The on-disk document schema remains version 2; existing `.mindmap` files are com
 - **Dark mode:** the moon/sun button in the top toolbar switches both floating UI and canvas; saved as a browser-only preference. Default black ink is rendered light on dark canvas without modifying its JSON style values. Custom non-black colours remain unchanged.
 
 No additional content types, dependencies, server or build tools. The core file/gesture flows remain unchanged.
+
+
+## V2.4 interaction contract and file model
+
+- **Left-drag empty space:** box selection; Shift-drag adds to current selection. **Right-drag anywhere:** pan. **Right-click an existing bend:** remove it.
+- **Middle-click:** remove a node, link or authored bend under the pointer; Ctrl/Cmd+Z undoes deletion. Keyboard Delete/Backspace remains supported for touch/trackpads.
+- Double-click to type directly within a box. Selected objects show a small floating toolbar for styles, pin, shelf and delete instead of permanent selection actions in the bottom bar.
+- A newly created node or link inherits the last selected **box or link style** for the active diagram. Presets, overrides and defaults are per diagram; duplicating a diagram deep-copies them. The styles panel has compact discrete choices; the simulation panel is separate.
+- **Focus mode (H)** hides all other floating controls while retaining its exit button; Escape also restores the interface.
+- **Autosave:** linked files are automatically written after a short idle period only if the browser has already granted write permission. All documents also attempt IndexedDB recovery snapshots, but **browser recovery is not a disk file**. Use Save/Save As to export when direct access is unavailable.
+- **File format:** `.mindmap` is now schema v3 (`maps[].styles`, `maps[].defaultNodeStyleId`, `maps[].defaultLinkStyleId`), with automatic migration from V1/V2 files. Back up important old files before saving migrated documents.
+- Installable PWA, same URL and static GitHub Pages workflow. No account or backend is introduced.
