@@ -48,3 +48,10 @@ Motion must clarify placement and state instead of decorating the canvas. Fit an
 - Two active touch pointers zoom/pan around their midpoint. A second touch rolls back unfinished single-pointer object drag; finger release must not accidentally add nodes or connections. Touch long-press adds a node to selection.
 - Node connection handles have enlarged invisible targets; candidate node snapping highlights a valid destination. Drop on blank canvas creates a linked node; dropping over floating controls or onto the source does not.
 - Use native keyboard semantics in input fields, meaningful icon labels, reduced-motion support, and browser gesture regression tests. Real devices still need manual validation.
+
+
+## V2.3 decisions
+
+Curved connections are an SVG representation of existing `bends` coordinates, using a C1-continuous interpolating spline through node boundary endpoints and user bend points; no extra Bézier handles or file migration. Hit-testing must use exactly the visible curve. Existing bend handles remain draggable; right-click one to delete it, with undo support.
+
+Style presets are document-wide definitions referenced across independent diagrams. New files get three black/white transparent-fill node styles and three black link styles; old files retain custom colour schemes. Arbitrarily many presets are supported. On preset deletion, references in every diagram are reassigned safely. Colour editing preserves opacity when RGB changes and vice versa; use `#RRGGBBAA` for alpha. Dark mode is an app preference, separate from portable file data, and makes default black ink legible without mutating styles.

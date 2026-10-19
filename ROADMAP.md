@@ -55,3 +55,16 @@ Still to refine: native touch pinch gestures, diagram hit-target accessibility, 
 - [ ] Manual testing on actual Android and Windows touch/trackpad devices
 
 **Next:** keyboard nudging, line bend hit-area improvements, SVG rendering performance, per-object style overrides, smart shelf drag/drop, and file save conflict protection. Prioritize feel and reliability over feature growth.
+
+
+## V2.3 · Completed
+- [x] Smooth editable curves through stored bend points, with matching hit paths and midpoint handles
+- [x] Right-click bend removal and undo
+- [x] Custom add/duplicate/delete node and link presets with safe reassignment
+- [x] Three black-and-white defaults per category, transparent node fill for new documents
+- [x] Independent colour opacity sliders, eight-digit CSS hex saved in JSON
+- [x] Dark interface and dark canvas via local preference, no colour mutation in saved files
+- [x] Browser regression tests for curve edits, preset creation and transparency file roundtrip
+- [ ] Physical touchscreen and Windows installed PWA validation
+
+Next focus: polish handling of many presets, per-object overrides and cross-device gestures.

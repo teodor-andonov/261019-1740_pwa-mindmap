@@ -66,3 +66,13 @@ This is a foundation release. Touch/pinch gestures, per-object style override ed
 - **Testing:** desktop Chromium and CDP touch-event tests cover area selection, group move/undo, shelf/undo, link creation, long-press and pinch. Actual Windows/Android device tests remain desirable.
 
 The on-disk document schema remains version 2; existing `.mindmap` files are compatible.
+
+
+## V2.3 — Smooth links, presets and dark mode
+
+- **Smooth links:** the existing saved polyline bend points now render as smooth, continuous cubic splines passing through every point. Select or hover a link to expose midpoint and bend handles. Drag a midpoint to add a bend; **right-click an authored bend to remove it**, and Ctrl/Cmd+Z to undo. No schema migration.
+- **Presets:** a new document starts with three monochrome node styles (black outlines/text and fully transparent fills) and three black link styles. Select a node or link and use **New** in Properties to create a preset. Presets can be renamed, edited, duplicated and deleted. Deleting a preset reassigns affected objects in all diagrams to the first remaining style. Existing documents keep their saved palettes.
+- **Opacity:** independently adjust fill, outline, text and link colour via colour picker and opacity slider (0–100%). Six-digit hex is opaque; eight-digit `#RRGGBBAA` stores transparency. The existing `.mindmap` version 2 schema supports both.
+- **Dark mode:** the moon/sun button in the top toolbar switches both floating UI and canvas; saved as a browser-only preference. Default black ink is rendered light on dark canvas without modifying its JSON style values. Custom non-black colours remain unchanged.
+
+No additional content types, dependencies, server or build tools. The core file/gesture flows remain unchanged.
