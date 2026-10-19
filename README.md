@@ -48,3 +48,11 @@ GitHub Pages deploys directly from `main` / `/(root)`; no custom Actions.
 
 ## Known limits
 This is a foundation release. Touch/pinch gestures, per-object style override editing, arbitrary preset creation, conflict-safe autosaving and large-graph physics need further work. No images, rich text, collaboration or cloud sync yet.
+
+## V2.1 — Motion and interaction polish
+
+- Eased Fit/toolbar zoom; dragging, wheel zoom and physics remain direct and interruptible.
+- New node entrance, link tracing, magnetic connection-target glow and subtle drag-release feedback.
+- Shelf/restore travel cues and more polished floating panels, menus, cards and simulation control.
+- Reduced-motion preference respected in both CSS and JavaScript.
+- Existing `.mindmap` schema unchanged; independent diagram and shelf behavior retained.

@@ -33,3 +33,13 @@
 - [ ] Optional graph analysis and agent-native tooling
 
 **Product rule:** fewer features, beautifully done. Canvas remains primary; UI is secondary and collapsible.
+
+## V2.1 — Motion and interaction polish (shipped)
+
+- [x] Gentle, interruptible Fit and toolbar zoom
+- [x] Node and edge entrance, connection hover target, node release feedback
+- [x] Shelf and restore cues; floating UI transitions and simulation animation
+- [x] Respect reduced-motion settings and keyboard focus
+- [x] Browser regressions: map independence, shelf and restore, node/link creation, file round-trip, simulated physics, desktop/mobile layout
+
+Still to refine: native touch pinch gestures, diagram hit-target accessibility, larger graph rendering performance, improved undo coverage and OS-level file handler verification. Preserve direct manipulation and restraint.

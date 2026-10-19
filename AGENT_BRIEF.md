@@ -35,3 +35,7 @@ V1 compatibility: each former view of a shared graph is converted into an indepe
 Keep a dependency-free static GitHub Pages PWA if possible. Test map isolation, shelf/restore and retained links, presets propagation, edge routing, undo/redo, file round-trips, V1 migration and offline install lifecycle. Use versioned app-shell cache. Save As must not overwrite the previous file. File association support differs by OS/browser, so never rely on it as the only entry point.
 
 See `ROADMAP.md` for iterative work. The emphasis for V2.x is **craft, not complexity**.
+
+## Motion & feedback (V2.1)
+
+Motion must clarify placement and state instead of decorating the canvas. Fit and toolbar zoom may ease; pointer drag, wheel zoom and physics are immediate and interruptible. New nodes/links briefly enter; selected, shelved and restored ideas provide feedback. Respect reduced-motion preferences in CSS and JavaScript. Animation never belongs in the portable JSON file. Test pointer capture after rendering changes.
