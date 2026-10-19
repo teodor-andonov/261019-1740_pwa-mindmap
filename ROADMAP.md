@@ -43,3 +43,15 @@
 - [x] Browser regressions: map independence, shelf and restore, node/link creation, file round-trip, simulated physics, desktop/mobile layout
 
 Still to refine: native touch pinch gestures, diagram hit-target accessibility, larger graph rendering performance, improved undo coverage and OS-level file handler verification. Preserve direct manipulation and restraint.
+
+## V2.2 · Gestures & direct manipulation (completed)
+- [x] Shift-drag marquee, selection tool and Ctrl/Cmd+A
+- [x] Move groups with one undo checkpoint; shelf/undo integration
+- [x] Multi-touch pinch/pan anchored between fingers
+- [x] Cancel an in-progress node drag when a pinch begins
+- [x] Touch long-press additive selection
+- [x] Enlarged connector hit targets and target snapping
+- [x] Headless Chromium regression suite (desktop and emulated touch)
+- [ ] Manual testing on actual Android and Windows touch/trackpad devices
+
+**Next:** keyboard nudging, line bend hit-area improvements, SVG rendering performance, per-object style overrides, smart shelf drag/drop, and file save conflict protection. Prioritize feel and reliability over feature growth.

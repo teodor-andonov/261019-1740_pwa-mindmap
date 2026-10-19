@@ -39,3 +39,12 @@ See `ROADMAP.md` for iterative work. The emphasis for V2.x is **craft, not compl
 ## Motion & feedback (V2.1)
 
 Motion must clarify placement and state instead of decorating the canvas. Fit and toolbar zoom may ease; pointer drag, wheel zoom and physics are immediate and interruptible. New nodes/links briefly enter; selected, shelved and restored ideas provide feedback. Respect reduced-motion preferences in CSS and JavaScript. Animation never belongs in the portable JSON file. Test pointer capture after rendering changes.
+
+## V2.2 Gesture contract
+
+- Independent diagrams and the portable JSON v2 schema are unchanged.
+- Selection is transient: Shift-click toggles, Shift-drag draws an additive marquee, a select-tool button enables rectangle selection, Ctrl/Cmd+A selects visible nodes. No selection state in the JSON file.
+- Dragging a selected node moves the selected group directly under the pointer and forms one undo checkpoint; no easing/lag during drag.
+- Two active touch pointers zoom/pan around their midpoint. A second touch rolls back unfinished single-pointer object drag; finger release must not accidentally add nodes or connections. Touch long-press adds a node to selection.
+- Node connection handles have enlarged invisible targets; candidate node snapping highlights a valid destination. Drop on blank canvas creates a linked node; dropping over floating controls or onto the source does not.
+- Use native keyboard semantics in input fields, meaningful icon labels, reduced-motion support, and browser gesture regression tests. Real devices still need manual validation.

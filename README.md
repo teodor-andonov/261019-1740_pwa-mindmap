@@ -56,3 +56,13 @@ This is a foundation release. Touch/pinch gestures, per-object style override ed
 - Shelf/restore travel cues and more polished floating panels, menus, cards and simulation control.
 - Reduced-motion preference respected in both CSS and JavaScript.
 - Existing `.mindmap` schema unchanged; independent diagram and shelf behavior retained.
+
+## V2.2 · Gesture quality
+
+- **Select:** Shift-click nodes, or Shift+drag to draw a marquee. The bottom-toolbar rectangle-selection icon (`V`) enables touch-friendly selection; Ctrl/Cmd+A selects all visible nodes.
+- **Touch:** long-press a node for additive selection; two fingers pinch to zoom and pan together. A second touch cancels an unfinished single-finger drag.
+- **Move groups:** dragging any selected node moves the selection as a unit and creates one undo checkpoint. Shelf works for the whole selection.
+- **Connect:** larger invisible connector hit targets and proximity snapping make it easier to connect on touchscreens; dropping in blank space creates a new connected node.
+- **Testing:** desktop Chromium and CDP touch-event tests cover area selection, group move/undo, shelf/undo, link creation, long-press and pinch. Actual Windows/Android device tests remain desirable.
+
+The on-disk document schema remains version 2; existing `.mindmap` files are compatible.
