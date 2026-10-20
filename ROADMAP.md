@@ -146,3 +146,13 @@ Next: verify real Windows/Android PWA and tablet gestures; increase coverage for
 - [x] Regression tests for handwriting display/edit matching, sketch geometry, preset and invisible-link behaviour.
 - [ ] Verify font fallback on actual Windows and Android devices; available handwriting fonts may differ.
 
+
+
+## V3.1 — Selection, Alt-copy and simulation fixes (completed)
+- [x] Optional style names and agent-friendly \`nodes[].type\` / \`edges[].type\`, empty by default
+- [x] Alt-drag duplication of node/group and separately bendable links
+- [x] Shift/marquee multiselection of links; bulk style, delete and Undo
+- [x] Persistent vertical sidebar tab icons, bottom-left zoom
+- [x] Simulation ignores shelved endpoints; stable overlap handling and damping
+- [x] Browser regressions for file metadata, selection, duplication, pins and archived links
+- [ ] Verify Alt-drag and long-running relaxation on actual Windows and Android devices

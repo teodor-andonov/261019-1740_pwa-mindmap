@@ -132,3 +132,11 @@ Do not reintroduce magnetic alignment, snapping or alignment guides. New default
 - `inkShape` owns node outline/underline appearance in Precise, Loose and Hand-drawn modes. Rounded corners are tangent-continuous cubic arcs. Underlines also receive style-dependent variation and optional ghost stroke.
 - A `shape:'none'` node is text-only and remains selectable through its invisible hit area. A link `dash:'none'` has no visible ink but remains in JSON and keeps its hit path. Preserve existing IDs and document schema v4.
 
+
+
+### V3.1 — Stable names, link selection and physics contract
+- An object may carry an optional \`type:string\` (empty by default) for agent-authored semantic labeling. It is independent of its style ID and content. Existing v4 documents and IDs remain valid.
+- Preset \`name\` is optional and editable; the stable ID is never derived from its name. New presets default to an empty name.
+- A selection may contain sets of nodes and links. Shift-click and marquee add links; bulk styling applies to all selected links, and deletion removes exactly the selected objects and incident links.
+- Alt+drag of a group clones its nodes and internal edges with new IDs, leaving originals unchanged. An edge can also be copied independently with bends.
+- Physics is calculated over visible nodes and only those links with both endpoints visible. Pinned nodes must not move and duplicate coordinates must not produce NaN or Infinity. Freezing creates a single Undo checkpoint.

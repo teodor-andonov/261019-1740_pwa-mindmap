@@ -1,4 +1,4 @@
-# Mindmap V2.9
+# Mindmap V3.1
 
 **The canvas is the application.** One local-first `.mindmap` file holds multiple independent diagrams. No backend or build system.
 
@@ -30,3 +30,13 @@ Visit https://teodor-andonov.github.io/261019-1740_pwa-mindmap/ or run `python -
 - **Text only** is a fourth default node style, with no box or underline. Select it from the Styles presets or choose **None (text only)** under Shape. Connections can also have Pattern **No line**, without deleting the underlying links.
 - No change to the version-4 `.mindmap` format. Existing files remain compatible.
 
+
+
+## V3.1 — Multiple links, Alt+drag and stable relaxation
+
+- Preset names are optional and editable in Styles. New presets start unnamed. Node and link records have an optional text \`type\` (default empty) which agents can use, independently of the visual style.
+- Shift-click and marquee-select both nodes and connections. Apply styles to multiple selected links; Delete/Undo work on mixed selections.
+- Alt+drag duplicates a selected node or group and its internal links; Alt+drag duplicates connections with separately editable bends. Ctrl/Cmd+D still duplicates.
+- The sidebar's tab icons stay visible vertically, even when the content panel is collapsed. Zoom in/out/100% is at bottom-left.
+- The force solver skips links to shelved nodes, guards coincident positions and uses more stable damping. Pinned nodes remain fixed.
+- Version 4 \`.mindmap\` format is unchanged; new metadata is optional. Desktop and touch regressions should still be verified on actual devices.

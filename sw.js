@@ -1,4 +1,4 @@
-const CACHE = 'mindmap-shell-v3.0';
+const CACHE = 'mindmap-shell-v3.1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
