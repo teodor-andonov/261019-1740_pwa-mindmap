@@ -13,7 +13,7 @@ def test_v28_defaults_and_theme(tmp_path):
         data=json.loads(Path(d.value.path()).read_text())
         node=data["maps"][0]["styles"]["nodes"]
         link=data["maps"][0]["styles"]["links"]
-        assert [s["name"] for s in node]==["Underline","Rounded","Circle"]
+        assert [s["name"] for s in node]==["Underline","Rounded","Circle","Text only"]
         assert [s["name"] for s in link]==["Solid","Dashed","Dotted"]
         assert link[2]["dash"]=="0.1 5"
         assert all(s["stroke"]=="#00000080" for s in link)

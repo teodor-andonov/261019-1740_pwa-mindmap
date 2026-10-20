@@ -126,3 +126,9 @@ Dragging selected nodes has an optional centre-axis magnetic alignment threshold
 ## V2.8 development contract
 
 Do not reintroduce magnetic alignment, snapping or alignment guides. New default node presets are Underline, Rounded rectangle and Circle; base shape families are underline, rectangle and ellipse, with radius and Equal X/Y settings. Keep compatibility for legacy rounded/circle style values. New link defaults are fine, half-black solid, dashed and dotted. Hand-drawn linework must affect BOTH nodes and links and use stable smoothly joined curves. The per-diagram skin controls background colour, linework and typography, and must be honoured by SVG/PNG exports. Frequent pointer and physics frames update existing SVG elements, not the full canvas DOM. Keep the version-3 document compatible.
+
+### V3.0 renderer contract
+- Never add `.node-label{font-family:inherit}`: a CSS font-family declaration overrides the SVG element's presentation attribute and makes text look wrong until the inline editor opens. Display, edit and export must use the same font stack and normal font-style.
+- `inkShape` owns node outline/underline appearance in Precise, Loose and Hand-drawn modes. Rounded corners are tangent-continuous cubic arcs. Underlines also receive style-dependent variation and optional ghost stroke.
+- A `shape:'none'` node is text-only and remains selectable through its invisible hit area. A link `dash:'none'` has no visible ink but remains in JSON and keeps its hit path. Preserve existing IDs and document schema v4.
+

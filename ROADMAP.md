@@ -137,3 +137,12 @@ Next: verify real Windows/Android PWA and tablet gestures; increase coverage for
 - [x] Preserve old document migration and undo/save behaviour.
 - [ ] Verify fonts and gesture performance on physical Windows/Android installs.
 
+
+## V3.0 — Hand-drawn consistency and border-free styles (shipped)
+- [x] Make SVG display labels respect Theme typography rather than CSS-inherited UI font.
+- [x] Eliminate forced italic and reduce glyph rotation in inline editor, canvas and SVG output.
+- [x] Stabilise drawn rounded-box corners, make underlines genuinely theme-sensitive.
+- [x] Add text-only node style and no-line link pattern with preserved hit areas.
+- [x] Regression tests for handwriting display/edit matching, sketch geometry, preset and invisible-link behaviour.
+- [ ] Verify font fallback on actual Windows and Android devices; available handwriting fonts may differ.
+

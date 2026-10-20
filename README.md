@@ -21,3 +21,12 @@ Left-click/drag selects, right-drag pans, pinch/wheel zooms. Double-click a node
 ## Run and test
 
 Visit https://teodor-andonov.github.io/261019-1740_pwa-mindmap/ or run `python -m http.server 8080` locally. Install test requirements and run `pytest -q tests` with Playwright Chromium. The PWA caches app code only; linked file autosave depends on browser write permissions, and recovery drafts are not replacements for saved files. Physical Windows/Android PWA testing remains outstanding.
+
+## V3.0 — Consistent handwriting and linework
+
+- The visible SVG label now uses the selected handwritten font, just like the in-place editor. The old CSS rule `font-family:inherit` was overriding the SVG's configured font.
+- Handwritten text is no longer forced italic, and artificial letter rotation is restrained. The same font/style choices apply in SVG and PNG exports.
+- Rounded-rectangle hand-drawn outlines now have smooth, tangent-continuous corners and subtle side variation; hand-drawn underlines have an organic curve plus a light companion stroke.
+- **Text only** is a fourth default node style, with no box or underline. Select it from the Styles presets or choose **None (text only)** under Shape. Connections can also have Pattern **No line**, without deleting the underlying links.
+- No change to the version-4 `.mindmap` format. Existing files remain compatible.
+
