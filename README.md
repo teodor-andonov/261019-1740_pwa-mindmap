@@ -110,3 +110,13 @@ The Theme panel exports clean SVG/PNG of the active diagram using its current ap
 During drag, node-centre alignment snaps to other visible nodes at roughly a 9-screen-pixel threshold with dashed guides; hold Alt to bypass. Drag a selected node or group onto the Shelf tab to put it away with one-step Undo.
 
 Older V1/V2/V3 files continue to open; missing theme values get Precise/Sans/Dots. On-disk version remains **3**. Test with `pytest -q tests/test_browser.py tests/test_theme.py`. OS-level association and physical touch-device checks remain manual QA tasks.
+
+
+## V2.8 — Responsive canvas, cleaner styles and themes
+
+- No magnetic alignment or guides. Node dragging follows the pointer exactly; connection targeting remains available.
+- Default nodes: Underline, Rounded rectangle and Circle, with fine outlines and transparent white fill. Rectangles use radius for rounding; Equal X/Y produces squares or circles. Old document presets remain unchanged.
+- Default links: solid, dashed and genuinely dotted fine strokes, all 50% black (#00000080).
+- Theme: Precise, Loose and Hand-drawn affect node outlines AND links, with deterministic, smooth curves. Handwriting affects node text, editor and export. Each diagram has editable background colour, also used on export.
+- Performance: panning and zooming change the SVG camera without recreating nodes. Dragging and simulation update existing SVG shapes on animation frames. Physics dimensions are cached per tick.
+- File schema remains version 3. Browsers need local handwriting fonts or use cursive fallback. Real Windows/Android tests and large-graph profiling remain outstanding.

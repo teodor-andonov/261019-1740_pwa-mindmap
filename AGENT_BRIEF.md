@@ -117,3 +117,8 @@ Per-diagram object **Styles** are factual formatting presets: fill, stroke, weig
 Loose/hand-drawn paths use deterministic seeded noise based on object ID; interaction hit paths remain precise. SVG export is constructed from standalone geometry, never screenshots or UI chrome; PNG is rasterized from SVG in-browser. Fonts use installed OS fallbacks, not hosted assets.
 
 Dragging selected nodes has an optional centre-axis magnetic alignment threshold (Alt bypass). Dropping the selection on the Shelf tab shelves nodes and groups the move as one Undo action. Retain direct pointer tracking and the static file / offline PWA architecture.
+
+
+## V2.8 development contract
+
+Do not reintroduce magnetic alignment, snapping or alignment guides. New default node presets are Underline, Rounded rectangle and Circle; base shape families are underline, rectangle and ellipse, with radius and Equal X/Y settings. Keep compatibility for legacy rounded/circle style values. New link defaults are fine, half-black solid, dashed and dotted. Hand-drawn linework must affect BOTH nodes and links and use stable smoothly joined curves. The per-diagram skin controls background colour, linework and typography, and must be honoured by SVG/PNG exports. Frequent pointer and physics frames update existing SVG elements, not the full canvas DOM. Keep the version-3 document compatible.

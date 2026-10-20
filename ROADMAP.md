@@ -118,3 +118,13 @@ Next focus: polish handling of many presets, per-object overrides and cross-devi
 - [x] Seven headless Chromium regressions passed; four original plus three V2.7-specific.
 
 Next: verify real Windows/Android PWA and tablet gestures; increase coverage for snap cancellation, shelf/restore edges, and export on installed browsers. Keep object content and geometry independent from the rendering skin.
+
+
+## V2.8 — Responsive canvas, cleaner styles and themes
+
+- No magnetic alignment or guides. Node dragging follows the pointer exactly; connection targeting remains available.
+- Default nodes: Underline, Rounded rectangle and Circle, with fine outlines and transparent white fill. Rectangles use radius for rounding; Equal X/Y produces squares or circles. Old document presets remain unchanged.
+- Default links: solid, dashed and genuinely dotted fine strokes, all 50% black (#00000080).
+- Theme: Precise, Loose and Hand-drawn affect node outlines AND links, with deterministic, smooth curves. Handwriting affects node text, editor and export. Each diagram has editable background colour, also used on export.
+- Performance: panning and zooming change the SVG camera without recreating nodes. Dragging and simulation update existing SVG shapes on animation frames. Physics dimensions are cached per tick.
+- File schema remains version 3. Browsers need local handwriting fonts or use cursive fallback. Real Windows/Android tests and large-graph profiling remain outstanding.
