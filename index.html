@@ -275,7 +275,11 @@ const physicsDefault=()=>({length:165,repulsion:2400,gap:22});
 const freshMap=(name='Diagram 01')=>({id:uid('m'),name,nodes:[],edges:[],styles:defaultStyles(),defaultNodeStyleId:'node-a',defaultLinkStyleId:'link-a',physics:physicsDefault(),viewport:{x:0,y:0,zoom:1},mode:'static'});
 const freshDoc=()=>({version:3,title:'Untitled',maps:[freshMap()]});
 const demo=()=>{const d=freshDoc(),m=d.maps[0];m.name='Exploration 01';const data=[[-210,-10,'Big idea','node-a'],[-20,-145,'Questions','node-c'],[35,110,'Research','node-b'],[160,-115,'Experiments','node-c'],[250,80,'Decisions','node-a'],[445,110,'Next steps','node-b']];m.nodes=data.map(([x,y,text,styleId])=>({id:uid('n'),text,x,y,styleId,pinned:false,shelved:false}));for(const [a,b,s] of [[0,1,0],[0,2,0],[1,3,1],[2,4,1],[3,4,2],[4,5,0]])m.edges.push({id:uid('e'),from:m.nodes[a].id,to:m.nodes[b].id,styleId:m.styles.links[s].id,bends:[]});return d};
-let styleEditorKind='nodes',styleEditorId=null,focusMode=false,autosaveTimer=0,autosaving=false,autosaveRetry=false;
+let styleEditorKind='nodes',styleEditorId=null,focusMode=false,autosaveTimer=0;
+// Document epochs prevent writes from an old document affecting a newly opened one.
+let documentEpoch=0,editRevision=0,lastWrittenRevision=-1,fileMetadata=null,fileConflict=false;
+let fileWrites=Promise.resolve(),recoveryWrites=Promise.resolve();
+let nudgeSession=null,nudgeTimer=0;
 let lastNodeClick={id:null,time:0},doc=demo(),mapId=doc.maps[0].id,selectedNodes=new Set(),selectedEdge=null,hoverNode=null,hoverEdge=null,editing=null,gesture=null,frame=0,velocities={},fileHandle=null,dirty=false,toastTimeout=0,shelfOpen=false,propsCollapsed=false,history=[],future=[],simulationStart=null,focused=false;
 const railTabs=[['diagrams','i-panel','Diagrams'],['styles','i-sliders','Styles'],['simulation','i-play','Simulation'],['shelf','i-archive','Shelf']];
 let railActive='diagrams';
@@ -332,13 +336,28 @@ const nodeStyle=(n,m=map())=>({...m.styles.nodes[0],...(m.styles.nodes.find(s=>s
 const linkStyle=(e,m=map())=>({...m.styles.links[0],...(m.styles.links.find(s=>s.id===e.styleId)||{}),...(e.overrides||{})});
 function notice(msg){clearTimeout(toastTimeout);$('toast').textContent=msg;$('toast').classList.add('show');toastTimeout=setTimeout(()=>$('toast').classList.remove('show'),2000)}
 function updateTitle(){document.title=doc.title+' — Mindmap';$('fileTitle').value=doc.title;$('unsaved').classList.toggle('visible',dirty)}
-function changed(){dirty=true;$('unsaved').classList.add('visible');updateUndo();queueAutosave()}
+function changed(){dirty=true;editRevision++;$('unsaved').classList.add('visible');updateUndo();queueAutosave()}
 function checkpoint(before){const prev=before??JSON.stringify(doc);if(prev===JSON.stringify(doc))return;history.push(prev);if(history.length>65)history.shift();future=[];changed()}
-function mutate(fn){const before=JSON.stringify(doc);fn();checkpoint(before);render()}
+function mutate(fn){finishNudge();const before=JSON.stringify(doc);fn();checkpoint(before);render()}
 function updateUndo(){$('undo').disabled=history.length===0;$('redo').disabled=future.length===0;}
-function undo(){if(!history.length)return;stopCamera();stopSimulation();future.push(JSON.stringify(doc));doc=JSON.parse(history.pop());if(!doc.maps.some(m=>m.id===mapId))mapId=doc.maps[0].id;clearSelection();changed();render();notice('Undone')}
-function redo(){if(!future.length)return;stopCamera();stopSimulation();history.push(JSON.stringify(doc));doc=JSON.parse(future.pop());if(!doc.maps.some(m=>m.id===mapId))mapId=doc.maps[0].id;clearSelection();changed();render();notice('Redone')}
+function undo(){finishNudge();if(!history.length)return;stopCamera();stopSimulation();future.push(JSON.stringify(doc));doc=JSON.parse(history.pop());if(!doc.maps.some(m=>m.id===mapId))mapId=doc.maps[0].id;clearSelection();changed();render();notice('Undone')}
+function redo(){finishNudge();if(!future.length)return;stopCamera();stopSimulation();history.push(JSON.stringify(doc));doc=JSON.parse(future.pop());if(!doc.maps.some(m=>m.id===mapId))mapId=doc.maps[0].id;clearSelection();changed();render();notice('Redone')}
 function clearSelection(){selectedNodes.clear();selectedEdge=null;hoverNode=null;hoverEdge=null;connectCandidate=null}
+function finishNudge(){
+ clearTimeout(nudgeTimer);nudgeTimer=0;
+ if(!nudgeSession)return;
+ const snapshot=nudgeSession.before;nudgeSession=null;checkpoint(snapshot);
+}
+function nudgeSelection(dx,dy){
+ const nodes=[...selectedNodes].map(node).filter(n=>n&&!n.shelved);
+ if(!nodes.length)return;
+ if(nudgeSession?.mapId!==mapId)finishNudge();
+ if(!nudgeSession)nudgeSession={mapId,before:JSON.stringify(doc)};
+ for(const n of nodes){n.x+=dx;n.y+=dy}
+ changed();renderCanvas();renderMaps();renderQuickbar();
+ clearTimeout(nudgeTimer);nudgeTimer=setTimeout(finishNudge,300);
+}
+
 function validateDocument(raw){
  if(!raw||typeof raw!=='object')throw Error('Invalid document');
  if(raw.version===1)raw=migrateV1(raw);
@@ -364,7 +383,7 @@ function validateDocument(raw){
 }
 function migrateV1(old){const d={version:2,title:old.title||'Imported',styles:defaultStyles(),maps:[]};for(const v of old.views||[]){const m=freshMap(v.name||'Diagram');m.viewport=deep(v.viewport||{x:0,y:0,zoom:1});m.physics={...physicsDefault(),...(v.physics||{})};const remap=new Map();for(const n of old.nodes||[]){const id=uid('n'),p=v.positions?.[n.id]||{};remap.set(n.id,id);const styleId=n.shape==='ellipse'?'node-b':n.shape==='rectangle'?'node-c':'node-a';m.nodes.push({id,text:n.text||'Idea',x:p.x||0,y:p.y||0,pinned:!!p.pinned,shelved:false,styleId,overrides:{shape:n.shape||'rounded',stroke:n.color||'#5364ca'}})}for(const e of old.edges||[]){if(!remap.has(e.source)||!remap.has(e.target))continue;m.edges.push({id:uid('e'),from:remap.get(e.source),to:remap.get(e.target),styleId:e.strength==='weak'?'link-c':e.strength==='strong'?'link-a':'link-b',bends:deep(v.routes?.[e.id]||[])})}d.maps.push(m)}if(!d.maps.length)d.maps=[freshMap()];return d}
 
-function selectMap(id){stopLongPress();activePointers.clear();gesture=null;connectCandidate=null;if(!doc.maps.some(m=>m.id===id))return;if(mapId===id)return;stopCamera();$('mapMenu').hidden=true;stopSimulation();mapId=id;clearSelection();velocities={};if(!map().viewport.x&&!map().viewport.y)fit(false);render();revealMap()}
+function selectMap(id){finishNudge();stopLongPress();activePointers.clear();gesture=null;connectCandidate=null;if(!doc.maps.some(m=>m.id===id))return;if(mapId===id)return;stopCamera();$('mapMenu').hidden=true;stopSimulation();mapId=id;clearSelection();velocities={};if(!map().viewport.x&&!map().viewport.y)fit(false);render();revealMap()}
 function cloneMap(){mutate(()=>{const src=map(),copy=deep(src),translate=new Map();copy.id=uid('m');copy.name=src.name+' copy';copy.mode='static';for(const n of copy.nodes){const prev=n.id;n.id=uid('n');translate.set(prev,n.id)}for(const e of copy.edges){e.id=uid('e');e.from=translate.get(e.from);e.to=translate.get(e.to)}doc.maps.push(copy);mapId=copy.id;clearSelection()});notice('Independent copy created')}
 function addMap(){mutate(()=>{const m=freshMap('Diagram '+String(doc.maps.length+1).padStart(2,'0'));doc.maps.push(m);mapId=m.id;clearSelection()});notice('New diagram')}
 function deleteMap(){if(doc.maps.length<2)return;if(!confirm('Delete this diagram and its nodes?'))return;mutate(()=>{doc.maps=doc.maps.filter(m=>m.id!==mapId);mapId=doc.maps[0].id;clearSelection()})}
@@ -372,6 +391,23 @@ function renameMap(){const m=map(),card=[...document.querySelectorAll('.map-card
 function addNodeAt(x,y,from=null){let out;mutate(()=>{out={id:uid('n'),text:'New idea',x,y,pinned:false,shelved:false,styleId:map().defaultNodeStyleId};map().nodes.push(out);enteringNodes.add(out.id);if(from&&node(from)){const newEdge={id:uid('e'),from,to:out.id,styleId:map().defaultLinkStyleId,bends:[]};map().edges.push(newEdge);enteringLinks.add(newEdge.id)};clearSelection();selectedNodes.add(out.id)});pulseWorld(x,y);return out}
 function connect(a,b){if(a===b||!node(a)||!node(b))return;const existing=map().edges.find(e=>e.from===a&&e.to===b||e.from===b&&e.to===a);if(existing){clearSelection();selectedEdge=existing.id;render();return}mutate(()=>{const e={id:uid('e'),from:a,to:b,styleId:map().defaultLinkStyleId,bends:[]};map().edges.push(e);enteringLinks.add(e.id);clearSelection();selectedEdge=e.id});const aNode=node(a),bNode=node(b);if(aNode&&bNode)pulseWorld((aNode.x+bNode.x)/2,(aNode.y+bNode.y)/2)}
 function removeSelection(){if(!selectedNodes.size&&!selectedEdge)return;mutate(()=>{if(selectedNodes.size){map().nodes=map().nodes.filter(n=>!selectedNodes.has(n.id));map().edges=map().edges.filter(e=>!selectedNodes.has(e.from)&&!selectedNodes.has(e.to))}else if(selectedEdge)map().edges=map().edges.filter(e=>e.id!==selectedEdge);clearSelection()})}
+ // Duplicate a selected subgraph as an independent, offset group. Internal links are copied too.
+function duplicateSelection(){
+ const chosen=map().nodes.filter(n=>selectedNodes.has(n.id)&&!n.shelved);
+ if(!chosen.length)return;
+ mutate(()=>{
+  const ids=new Map();
+  const duplicates=chosen.map(n=>{const copy=deep(n);copy.id=uid('n');copy.x+=36;copy.y+=36;copy.pinned=false;ids.set(n.id,copy.id);enteringNodes.add(copy.id);return copy});
+  const edges=map().edges.filter(e=>ids.has(e.from)&&ids.has(e.to)).map(e=>{
+   const copy=deep(e);copy.id=uid('e');copy.from=ids.get(e.from);copy.to=ids.get(e.to);
+   copy.bends=(copy.bends||[]).map(p=>({x:p.x+36,y:p.y+36}));enteringLinks.add(copy.id);return copy;
+  });
+  map().nodes.push(...duplicates);map().edges.push(...edges);
+  selectedNodes=new Set(duplicates.map(n=>n.id));selectedEdge=null;
+ });
+ notice(chosen.length===1?'Duplicated node':'Duplicated selection');
+}
+
 function shelveSelected(){if(!selectedNodes.size)return;const first=[...selectedNodes][0],n=node(first),el=Array.from(document.querySelectorAll('#nodeLayer [data-node]')).find(e=>e.dataset.node===first),from=el?.getBoundingClientRect(),text=n?.text;mutate(()=>{for(const n of map().nodes)if(selectedNodes.has(n.id))n.shelved=true;clearSelection()});shelfOpen=true;showRailTab('shelf');renderShelf();flyText(text,from,$('rail-shelf').getBoundingClientRect());notice('Moved to shelf')}
 function shelveAll(){if(!map().nodes.some(n=>!n.shelved))return;const n=map().nodes.find(n=>!n.shelved),el=Array.from(document.querySelectorAll('#nodeLayer [data-node]')).find(e=>e.dataset.node===n.id),from=el?.getBoundingClientRect();mutate(()=>{map().nodes.forEach(n=>n.shelved=true);clearSelection()});shelfOpen=true;showRailTab('shelf');renderShelf();flyText(n.text,from,$('rail-shelf').getBoundingClientRect());notice('Canvas cleared · ideas on shelf')}
 function restoreNode(id,x,y){const n=node(id);if(!n||!n.shelved)return;const source=Array.from(document.querySelectorAll('#shelfItems [data-restore]')).find(e=>e.dataset.restore===id)?.getBoundingClientRect(),text=n.text;mutate(()=>{n.shelved=false;enteringNodes.add(id);if(Number.isFinite(x)&&Number.isFinite(y)){n.x=x;n.y=y;}else{const vp=map().viewport;n.x=($('stage').clientWidth/2-vp.x)/vp.zoom;n.y=($('stage').clientHeight/2-vp.y)/vp.zoom}});const dest=Array.from(document.querySelectorAll('#nodeLayer [data-node]')).find(e=>e.dataset.node===id)?.getBoundingClientRect();flyText(text,source,dest);pulseWorld(n.x,n.y);notice('Restored to canvas')}
@@ -413,6 +449,20 @@ function curveSegments(pts){
 }
 const atCurve=(s,t)=>{const u=1-t;return{x:u*u*u*s.a.x+3*u*u*t*s.c1.x+3*u*t*t*s.c2.x+t*t*t*s.b.x,y:u*u*u*s.a.y+3*u*u*t*s.c1.y+3*u*t*t*s.c2.y+t*t*t*s.b.y}};
 function svgPath(pts){if(!pts.length)return'';const a=pts[0],segments=curveSegments(pts);return 'M'+a.x.toFixed(1)+' '+a.y.toFixed(1)+segments.map(s=>` C${s.c1.x.toFixed(1)} ${s.c1.y.toFixed(1)} ${s.c2.x.toFixed(1)} ${s.c2.y.toFixed(1)} ${s.b.x.toFixed(1)} ${s.b.y.toFixed(1)}`).join('')}
+
+// Find the closest point on the existing spline; edit geometry remains a list of simple bends.
+function insertBendAt(e,world){
+ const segments=curveSegments(edgePoints(e));if(!segments.length)return;
+ let best={distance:Infinity,index:0,point:world};
+ segments.forEach((segment,index)=>{
+  for(let j=0;j<=32;j++){
+   const q=atCurve(segment,j/32),distance=(q.x-world.x)**2+(q.y-world.y)**2;
+   if(distance<best.distance)best={distance,index,point:q};
+  }
+ });
+ mutate(()=>{e.bends.splice(best.index,0,best.point);clearSelection();selectedEdge=e.id});
+}
+
 
 function renderEdges(){let html='';for(const e of map().edges){const points=edgePoints(e);if(!points.length)continue;const s=linkStyle(e),sel=selectedEdge===e.id,hover=hoverEdge===e.id,d=svgPath(points),stroke=sel?('#333333'):displayInk(s.stroke);html+=`<g data-edge="${esc(e.id)}"><path d="${d}" fill="none" stroke="${esc(stroke)}" stroke-width="${s.strokeWidth+(sel?.6:0)}" stroke-dasharray="${esc(s.dash||'')}" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/><path class="hit-edge" data-edge="${esc(e.id)}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
 if(enteringLinks.has(e.id))html+=`<path class="link-appear" d="${d}" pathLength="1" fill="none" stroke="${'#333333'}" stroke-width="3.5" stroke-linecap="round" pointer-events="none"/>`;
@@ -520,6 +570,7 @@ function editNode(id){const n=node(id);if(!n||n.shelved)return;doneEditing(true)
 function doneEditing(save){if(!editing)return;const el=$('editor'),n=node(editing.id),before=editing.before;editing=null;el.style.display='none';if(save&&n){n.text=el.value.trim()||'Idea';checkpoint(before)}render();}
 
 function beginPointer(ev){
+ finishNudge();
  if(ev.pointerType==='mouse'&&ev.button===1){ev.preventDefault();const target=ev.target,bd=target.closest('[data-bend]'),nd=target.closest('[data-node]'),ed=target.closest('[data-edge]');if(bd){const e=edge(bd.dataset.edge),index=+bd.dataset.bend;if(e?.bends[index])mutate(()=>{e.bends.splice(index,1);selectedEdge=e.id});}else if(nd){const id=nd.dataset.node;selectedNodes=new Set([id]);selectedEdge=null;removeSelection();}else if(ed){selectedEdge=ed.dataset.edge;selectedNodes.clear();removeSelection();}return;}
  if(ev.pointerType==='mouse'&&ev.button===2){
   ev.preventDefault();doneEditing(true);stopCamera();stopLongPress();
@@ -617,42 +668,129 @@ function cancelGesture(ev){
  if(g.kind==='pinch'&&g.moved)changed();render();
 }
 
-function setDoc(next,handle=null){stopLongPress();activePointers.clear();gesture=null;connectCandidate=null;stopCamera();stopSimulation();doc=validateDocument(next);mapId=doc.maps[0].id;fileHandle=handle;clearSelection();history=[];future=[];dirty=false;updateTitle();fit(false);render();recoveryWrite(false)}
-async function openFile(file,handle=null){try{const next=JSON.parse(await file.text());if(dirty&&!confirm('Discard unsaved changes and open another file?'))return;setDoc(next,handle);notice(file.name.endsWith('.json')?'Imported legacy JSON':'Document opened')}catch(e){notice('Cannot open: '+e.message);console.error(e)}}
+function setDoc(next,handle=null,meta=null){
+ // Stop simulation against the old document before advancing the epoch.
+ stopSimulation();clearTimeout(autosaveTimer);clearTimeout(nudgeTimer);nudgeSession=null;
+ documentEpoch++;editRevision=0;lastWrittenRevision=-1;fileConflict=false;fileMetadata=meta;
+ stopLongPress();activePointers.clear();gesture=null;connectCandidate=null;stopCamera();
+ doc=validateDocument(next);mapId=doc.maps[0].id;fileHandle=handle;
+ clearSelection();history=[];future=[];dirty=false;updateTitle();fit(false);render();
+ // A deliberate new/open resets the recovery slot. Queued writes from older epochs are skipped.
+ recoveryWrite(false);
+}
+async function openFile(file,handle=null){
+ try{
+  const next=JSON.parse(await file.text());
+  if(dirty&&!confirm('Discard unsaved changes and open another file?'))return;
+  const meta=handle?{lastModified:file.lastModified,size:file.size}:null;
+  setDoc(next,handle,meta);
+  notice(file.name.endsWith('.json')?'Imported legacy JSON':'Document opened');
+ }catch(e){notice('Cannot open: '+e.message);console.error(e)}
+}
 async function pickFile(){if(window.showOpenFilePicker){try{const handles=await showOpenFilePicker({types:[{description:'Mindmap diagram',accept:{'application/json':['.mindmap','.json']}}],multiple:false});await openFile(await handles[0].getFile(),handles[0]);return}catch(e){if(e.name==='AbortError')return}}$('fileInput').click()}
 function safeName(){return(doc.title||'Untitled').replace(/[\\/:*?"<>|]/g,'-').trim()||'Untitled'}
+function serializeDoc(){return JSON.stringify({...doc,maps:doc.maps.map(m=>({...m,mode:'static'}))},null,2)+'\n'}
+function sameFileMeta(a,b){return !!a&&!!b&&a.lastModified===b.lastModified&&a.size===b.size}
+// The single queue ensures autosave and manual Save never interleave writes.
+function writeFileQueued(handle,content,epoch,revision){
+ const operation=async()=>{
+  if(epoch!==documentEpoch)return 'stale';
+  if(handle===fileHandle&&revision<=lastWrittenRevision)return 'superseded';
+  if(fileConflict&&handle===fileHandle)return 'conflict';
+  if(handle===fileHandle&&fileMetadata&&typeof handle.getFile==='function'){
+   const before=await handle.getFile();
+   if(!sameFileMeta(before,fileMetadata)){
+    fileConflict=true;notice('File changed externally · use Save As');return 'conflict';
+   }
+  }
+  if(epoch!==documentEpoch)return 'stale';
+  const writable=await handle.createWritable();
+  try{await writable.write(content);await writable.close()}catch(e){try{await writable.abort?.()}catch(_){}throw e}
+  if(epoch!==documentEpoch)return 'stale';
+  fileHandle=handle;fileConflict=false;lastWrittenRevision=revision;
+  if(typeof handle.getFile==='function'){
+   try{const saved=await handle.getFile();fileMetadata={lastModified:saved.lastModified,size:saved.size}}
+   catch(e){fileMetadata=null}
+  }else fileMetadata=null;
+  if(epoch===documentEpoch&&revision===editRevision&&serializeDoc()===content){
+   dirty=false;updateTitle();await recoveryWrite(false);
+  }
+  return 'saved';
+ };
+ fileWrites=fileWrites.catch(()=>{}).then(operation);
+ return fileWrites;
+}
+function downloadDocument(content){
+ const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download=safeName()+'.mindmap';document.body.append(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
 async function save(forceAs=false){
- const content=JSON.stringify({...doc,maps:doc.maps.map(m=>({...m,mode:'static'}))},null,2)+'\n';
+ finishNudge();clearTimeout(autosaveTimer);
+const content=serializeDoc(),epoch=documentEpoch,revision=editRevision;
  let target=forceAs?null:fileHandle;
  if(!target&&window.showSaveFilePicker){
   try{target=await showSaveFilePicker({suggestedName:safeName()+'.mindmap',types:[{description:'Mindmap document',accept:{'application/json':['.mindmap']}}]})}
-  catch(e){if(e.name==='AbortError')return;notice('Using file download')}
+  catch(e){if(e.name==='AbortError'){if(dirty)queueAutosave();return}notice('Using file download')}
  }
- if(target){try{const writable=await target.createWritable();await writable.write(content);await writable.close();fileHandle=target;dirty=false;updateTitle();await recoveryWrite(false);notice('Saved');return}catch(e){console.warn(e);notice('Save failed · downloading copy')}}
- const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=safeName()+'.mindmap';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);dirty=false;updateTitle();await recoveryWrite(false);notice('Downloaded .mindmap')
+ if(target){
+  try{
+   const status=await writeFileQueued(target,content,epoch,revision);
+   if(status==='saved'){notice(dirty?'Saved snapshot · newer edits pending':'Saved');return}
+   if(status==='superseded'){notice('Already saved');return}
+   if(status==='conflict'){notice('External changes detected · choose Save As');return}
+   return;
+  }catch(e){console.warn('Save failed',e);notice('Save failed · downloading copy')}
+ }
+ if(epoch!==documentEpoch)return;
+ downloadDocument(content);
+ if(revision===editRevision&&serializeDoc()===content){dirty=false;updateTitle();await recoveryWrite(false)}
+ notice('Downloaded .mindmap');
 }
 function resetDocument(){if(dirty&&!confirm('Discard unsaved changes?'))return;setDoc(freshDoc());notice('New document')}
 function toggleShelf(){showRailTab('shelf');shelfOpen=true;renderShelf()}
 function toggleFocus(force){focusMode=typeof force==='boolean'?force:!focusMode;document.body.classList.toggle('focus-mode',focusMode);$('focusToggle').classList.toggle('active',focusMode);$('focusToggle').title=focusMode?'Exit focus mode (H / Escape)':'Focus mode (H)';renderQuickbar();}
-// Autosave is intentionally two-tier: a linked file when permission exists, otherwise a local recovery snapshot.
+// Autosave is two-tier: disk only with previously granted permission; IndexedDB is recovery only.
 const recoveryDB='mindmap-recovery-v1';
 function recoveryStore(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(Error('IndexedDB unavailable'));return}const req=indexedDB.open(recoveryDB,1);req.onupgradeneeded=()=>req.result.createObjectStore('drafts');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
-async function recoveryWrite(pending){try{const db=await recoveryStore();await new Promise((resolve,reject)=>{const tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').put({doc:deep(doc),pending,updated:Date.now()},'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch(e){console.warn('Recovery unavailable',e)}}
-async function recoveryRead(){try{const db=await recoveryStore();const val=await new Promise((resolve,reject)=>{const tx=db.transaction('drafts','readonly');const request=tx.objectStore('drafts').get('latest');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});db.close();return val}catch(e){return null}}
-async function flushAutosave(){if(autosaving){autosaveRetry=true;return}autosaving=true;try{
- const snapshot=JSON.stringify({...doc,maps:doc.maps.map(m=>({...m,mode:'static'}))},null,2)+'\n';
- await recoveryWrite(true);
- if(fileHandle&&typeof fileHandle.createWritable==='function'){
-  const permission=typeof fileHandle.queryPermission==='function'?await fileHandle.queryPermission({mode:'readwrite'}):'granted';
-  if(permission==='granted'){
-   const handle=fileHandle;const writable=await handle.createWritable();await writable.write(snapshot);await writable.close();
-   if(JSON.stringify({...doc,maps:doc.maps.map(m=>({...m,mode:'static'}))},null,2)+'\n'===snapshot){dirty=false;updateTitle();await recoveryWrite(false)}
-  }
- }
- }catch(e){console.warn('Autosave to linked file not available',e)}finally{autosaving=false;if(autosaveRetry){autosaveRetry=false;queueAutosave()}}}
-function queueAutosave(){clearTimeout(autosaveTimer);autosaveTimer=setTimeout(flushAutosave,1300)}
-async function offerRecovery(){const backup=await recoveryRead();if(!backup?.pending||!backup.doc||!backup.updated)return;if(!confirm('Restore your last unsaved Mindmap session?'))return;try{setDoc(backup.doc);dirty=true;updateTitle();notice('Recovered local session · Save to a file to keep it')}catch(e){console.warn(e)}}
-$('canvas').addEventListener('pointerdown',beginPointer);$('canvas').addEventListener('pointermove',movePointer);$('canvas').addEventListener('pointerup',endPointer);$('canvas').addEventListener('pointercancel',cancelGesture);$('canvas').addEventListener('lostpointercapture',ev=>{if(activePointers.has(ev.pointerId))cancelGesture(ev)});$('canvas').addEventListener('contextmenu',ev=>ev.preventDefault());$('canvas').addEventListener('dblclick',ev=>{const n=ev.target.closest('[data-node]');if(n)editNode(n.dataset.node);else if(!selectingTool&&!ev.target.closest('[data-edge]')){const p=screenPos(ev.clientX,ev.clientY);const n=addNodeAt(p.x,p.y);editNode(n.id)}});$('canvas').addEventListener('wheel',ev=>{ev.preventDefault();const r=$('canvas').getBoundingClientRect();zoom(map().viewport.zoom*Math.exp(-ev.deltaY*.001),ev.clientX-r.left,ev.clientY-r.top,false)},{passive:false});
+// Capture the document before async work. Serializing prevents old recovery writes from replacing newer ones.
+function recoveryWrite(pending,snapshot=deep(doc),epoch=documentEpoch){
+ const write=async()=>{
+  if(epoch!==documentEpoch)return;
+  try{
+   const db=await recoveryStore();
+   if(epoch!==documentEpoch){db.close();return}
+   await new Promise((resolve,reject)=>{const tx=db.transaction('drafts','readwrite');tx.objectStore('drafts').put({doc:snapshot,pending,updated:Date.now()},'latest');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+   db.close();
+  }catch(e){console.warn('Recovery unavailable',e)}
+ };
+ recoveryWrites=recoveryWrites.catch(()=>{}).then(write);return recoveryWrites;
+}
+async function recoveryRead(){
+ await recoveryWrites.catch(()=>{});
+ try{const db=await recoveryStore();const val=await new Promise((resolve,reject)=>{const tx=db.transaction('drafts','readonly');const request=tx.objectStore('drafts').get('latest');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});db.close();return val}catch(e){return null}
+}
+async function flushAutosave(){
+ if(!dirty)return;
+ const epoch=documentEpoch,revision=editRevision,content=serializeDoc(),handle=fileHandle;
+ await recoveryWrite(true,deep(doc),epoch);
+ if(epoch!==documentEpoch||!handle||fileConflict)return;
+ try{
+  const permission=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'granted';
+  if(permission!=='granted'||epoch!==documentEpoch)return;
+  const status=await writeFileQueued(handle,content,epoch,revision);
+  if(status==='conflict')notice('File changed on disk · Save As to protect it');
+ }catch(e){console.warn('Autosave to linked file unavailable',e)}
+}
+function queueAutosave(){clearTimeout(autosaveTimer);autosaveTimer=setTimeout(flushAutosave,1100)}
+async function offerRecovery(){
+ const epoch=documentEpoch,backup=await recoveryRead();
+ if(epoch!==documentEpoch||!backup?.pending||!backup.doc||!backup.updated)return;
+ if(!confirm('Restore your last unsaved Mindmap session?'))return;
+ try{setDoc(backup.doc);dirty=true;editRevision++;updateTitle();await recoveryWrite(true);notice('Recovered draft · Save to a file to keep it')}
+ catch(e){console.warn(e)}
+}
+$('canvas').addEventListener('pointerdown',beginPointer);$('canvas').addEventListener('pointermove',movePointer);$('canvas').addEventListener('pointerup',endPointer);$('canvas').addEventListener('pointercancel',cancelGesture);$('canvas').addEventListener('lostpointercapture',ev=>{if(activePointers.has(ev.pointerId))cancelGesture(ev)});$('canvas').addEventListener('contextmenu',ev=>ev.preventDefault());$('canvas').addEventListener('dblclick',ev=>{const n=ev.target.closest('[data-node]');if(n)editNode(n.dataset.node);else if(ev.target.closest('[data-edge]')){const e=edge(ev.target.closest('[data-edge]').dataset.edge);if(e)insertBendAt(e,screenPos(ev.clientX,ev.clientY))}else if(!selectingTool){const p=screenPos(ev.clientX,ev.clientY);const n=addNodeAt(p.x,p.y);editNode(n.id)}});$('canvas').addEventListener('wheel',ev=>{ev.preventDefault();const r=$('canvas').getBoundingClientRect();zoom(map().viewport.zoom*Math.exp(-ev.deltaY*.001),ev.clientX-r.left,ev.clientY-r.top,false)},{passive:false});
 $('mapList').addEventListener('click',ev=>{const b=ev.target.closest('[data-map]');if(b)selectMap(b.dataset.map)});$('mapList').addEventListener('dblclick',ev=>{const b=ev.target.closest('[data-map]');if(b){selectMap(b.dataset.map);renameMap()}});$('mapList').addEventListener('contextmenu',ev=>{const b=ev.target.closest('[data-map]');if(!b)return;ev.preventDefault();selectMap(b.dataset.map);const answer=prompt('Diagram action: R rename, D duplicate, X delete','R');if(!answer)return;const a=answer.toLowerCase()[0];if(a==='r')renameMap();else if(a==='d')cloneMap();else if(a==='x')deleteMap()});
 $('toggleMaps').onclick=toggleRail;$('newMap').onclick=addMap;$('addMapCollapsed').onclick=addMap;$('mapActions').onclick=()=>$('mapMenu').hidden=!$('mapMenu').hidden;$('renameMap').onclick=()=>{$('mapMenu').hidden=true;renameMap()};$('duplicateMap').onclick=()=>{$('mapMenu').hidden=true;cloneMap()};$('removeMap').onclick=()=>{$('mapMenu').hidden=true;deleteMap()};
 $('quickbar').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;const kind=selectedNodes.size?'nodes':'links';if(b.dataset.quickStyle){applyStyle(kind,b.dataset.quickStyle);render();return}if(b.dataset.quickAction==='pin')pinSelected();if(b.dataset.quickAction==='shelf')shelveSelected();if(b.dataset.quickAction==='delete')removeSelection()});
@@ -677,7 +815,8 @@ $('addNode').onclick=()=>{const v=map().viewport,n=addNodeAt(($('stage').clientW
 $('shelfItems').addEventListener('click',ev=>{const n=ev.target.closest('[data-restore]');if(n)restoreNode(n.dataset.restore)});$('shelfItems').addEventListener('dragstart',ev=>{const n=ev.target.closest('[data-restore]');if(n){ev.dataTransfer.setData('application/x-mindmap-node',n.dataset.restore);ev.dataTransfer.effectAllowed='move'}});$('stage').addEventListener('dragover',ev=>{if(ev.dataTransfer?.types.includes('application/x-mindmap-node')){ev.preventDefault();ev.dataTransfer.dropEffect='move'}});$('stage').addEventListener('drop',ev=>{const id=ev.dataTransfer?.getData('application/x-mindmap-node');if(id){ev.preventDefault();const p=screenPos(ev.clientX,ev.clientY);restoreNode(id,p.x,p.y)}});
 $('editor').addEventListener('blur',()=>doneEditing(true));$('editor').addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.preventDefault();doneEditing(false)}if((ev.ctrlKey||ev.metaKey)&&ev.key==='Enter'){ev.preventDefault();doneEditing(true)}});
 $('fileTitle').onchange=e=>{const next=e.target.value.trim()||'Untitled';mutate(()=>{doc.title=next})};$('fileTitle').onkeydown=e=>{if(e.key==='Enter')e.target.blur()};$('newFile').onclick=resetDocument;$('openFile').onclick=pickFile;$('saveFile').onclick=()=>save();$('saveAs').onclick=()=>save(true);$('fileInput').onchange=async e=>{if(e.target.files[0])await openFile(e.target.files[0]);e.target.value=''};
-document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.ctrlKey||ev.metaKey;if(mod&&k==='s'){ev.preventDefault();doneEditing(true);save(ev.shiftKey);return}if(mod&&k==='o'){ev.preventDefault();pickFile();return}if(mod&&k==='z'){ev.preventDefault();doneEditing(true);if(ev.shiftKey)redo();else undo();return}if(mod&&k==='y'){ev.preventDefault();redo();return}const inField=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);if(inField)return;if(k==='delete'||k==='backspace'){ev.preventDefault();removeSelection()}if(k==='escape'){if(focusMode){toggleFocus(false);return}cancelGesture();clearSelection();focused=false;render()}if(k==='n'){const v=map().viewport,x=($('stage').clientWidth/2-v.x)/v.zoom,y=($('stage').clientHeight/2-v.y)/v.zoom;editNode(addNodeAt(x,y).id)}if(mod&&k==='a'){ev.preventDefault();selectedNodes=new Set(map().nodes.filter(visible).map(n=>n.id));selectedEdge=null;render();return}if(k==='p')pinSelected();if(k==='f')fit();if(k==='h'&&!mod){ev.preventDefault();toggleFocus()}if(k===' '){ev.preventDefault();toggleSimulation()}if(ev.shiftKey&&k==='s'){ev.preventDefault();shelveSelected()}});
+document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.ctrlKey||ev.metaKey;if(mod&&k==='s'){ev.preventDefault();doneEditing(true);save(ev.shiftKey);return}if(mod&&k==='o'){ev.preventDefault();pickFile();return}if(mod&&k==='z'){ev.preventDefault();doneEditing(true);if(ev.shiftKey)redo();else undo();return}if(mod&&k==='y'){ev.preventDefault();redo();return}const inField=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);if(inField)return;if(mod&&k==='d'){ev.preventDefault();duplicateSelection();return}if(['arrowup','arrowdown','arrowleft','arrowright'].includes(k)&&selectedNodes.size&&!mod){ev.preventDefault();const step=ev.shiftKey?10:1;const movement={arrowup:[0,-step],arrowdown:[0,step],arrowleft:[-step,0],arrowright:[step,0]}[k];nudgeSelection(...movement);return;}if(k==='enter'&&selectedNodes.size===1){ev.preventDefault();editNode([...selectedNodes][0]);return;}if(k==='delete'||k==='backspace'){ev.preventDefault();removeSelection()}if(k==='escape'){if(focusMode){toggleFocus(false);return}cancelGesture();clearSelection();focused=false;render()}if(k==='n'){const v=map().viewport,x=($('stage').clientWidth/2-v.x)/v.zoom,y=($('stage').clientHeight/2-v.y)/v.zoom;editNode(addNodeAt(x,y).id)}if(mod&&k==='a'){ev.preventDefault();selectedNodes=new Set(map().nodes.filter(visible).map(n=>n.id));selectedEdge=null;render();return}if(k==='p')pinSelected();if(k==='f')fit();if(k==='h'&&!mod){ev.preventDefault();toggleFocus()}if(k===' '){ev.preventDefault();toggleSimulation()}if(ev.shiftKey&&k==='s'){ev.preventDefault();shelveSelected()}});
+document.addEventListener('keyup',ev=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(ev.key))finishNudge()});
 document.addEventListener('dragover',ev=>{if(ev.dataTransfer?.files?.length)ev.preventDefault()});document.addEventListener('drop',async ev=>{const files=ev.dataTransfer?.files;if(files?.length){ev.preventDefault();if(/\.(mindmap|json)$/i.test(files[0].name))await openFile(files[0])}});
 window.addEventListener('beforeunload',ev=>{if(dirty){ev.preventDefault();ev.returnValue=''}});document.addEventListener('visibilitychange',()=>{if(document.hidden&&map().mode==='dynamic')stopSimulation()});window.addEventListener('resize',()=>renderCanvas());
 if('launchQueue' in window)window.launchQueue.setConsumer(async launch=>{const handle=launch.files?.[0];if(handle)try{await openFile(await handle.getFile(),handle)}catch(e){notice('File launch failed')}});

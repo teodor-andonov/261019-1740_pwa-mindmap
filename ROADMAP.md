@@ -94,3 +94,15 @@ Next focus: polish handling of many presets, per-object overrides and cross-devi
 - [x] Preserve version 3 files and bump offline PWA cache
 
 **Next:** validate Windows PWA file association and touch behaviour on actual hardware, improve shelving drag affordance, and harden autosave/recovery races.
+
+
+## V2.6 — Reliability and keyboard-quality sprint (shipped)
+- [x] Serialized linked-file writes, including overlapping manual Save and autosave
+- [x] Detect external linked-file modifications and direct users to Save As
+- [x] Epoch-gated recovery snapshots and safe unsaved-change status during writes
+- [x] Arrow-key nudging (1 unit; Shift 10) as grouped Undo actions
+- [x] Double-click links to add spline bends
+- [x] Ctrl/Cmd+D to duplicate selected subgraphs and their internal links
+- [x] Browser regressions for multi-diagram independence, keyboard Undo, autosave conflicts, and cluster duplication
+- [ ] Physical Windows/Android PWA, persistent recovery and OS association validation
+- [ ] V2.7: alignment/snapping, further text editing and shelf interaction polish

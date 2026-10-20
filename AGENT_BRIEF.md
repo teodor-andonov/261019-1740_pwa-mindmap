@@ -1,81 +1,112 @@
 # Mindmap V2 — Agent context and product intent
 
-## Motivation
-Build a small, enjoyable, spatial thinking tool: create textual ideas on an infinite canvas, link them, move them manually, optionally relax their positions with graph physics, and experiment freely. It must not become a complicated whiteboard. Prioritize direct manipulation, simplicity, smooth transitions, hit targets, predictable file handling and readable local source.
+## Why
 
-The canvas is the **actual interface**. Other UI surfaces should float above it, be context-sensitive and collapse away. Avoid explanatory prose on screen. Use tooltips rather than text labels where practical. Do not duplicate the app icon/title inside a PWA's toolbar.
+Build a delightfully light, spatial thinking tool that does *one thing well*: put ideas on an infinite canvas, connect them, rearrange them by hand or physics, and try alternative configurations without the overhead of a general whiteboard.
 
-## Settled decisions (October 2026)
-1. **Independent diagrams, not views:** each tab/map owns unrelated nodes, links, layout and shelf. Duplicating creates deep copies. A file is only a collection of diagrams.
-2. **Shelf:** hides existing nodes without deleting their data. Their links remain recorded but are drawn only when both endpoints are visible; restore later by click/drag. A shelf is diagram-local.
-3. **No semantic types:** exactly three default node *style* presets and three default link *style* presets; any property—shape, fill, outline, thickness, font size, text colour, dash etc—belongs to the style. Preset identity maps to appearance, not meaning. Simulation parameters are separate.
-4. **Floating chrome:** top-left general/file controls, collapsible left thumbnails, contextual properties top-right, separate simulation below/right, central bottom tools and small zoom cluster.
-5. **Local files:** human-readable versioned JSON in `.mindmap` extension; best-effort PWA file association on desktop, manual import/download fallback everywhere.
-6. **Scope:** only text nodes and undirected plain links until the core editor is truly polished. No agents, images, sketches, notes, rich semantics or excessive feature bloat now.
+The user wants to sketch an idea without managing a workspace. The canvas is the application; chrome and commands float above it and should hide/collapse whenever possible. Prioritize direct manipulation, discoverability, speed and smooth transitions over feature abundance. Do not fill the screen with explanatory copy or duplicate native PWA/window branding.
 
-## Data schema v2
-```text
-Document { version: 2, title, styles: {nodes: [...], links: [...]}, maps: [...] }
-Map { id, name, mode, viewport, physics, nodes: [...], edges: [...] }
-Node { id, text, x, y, pinned, shelved, styleId, overrides? }
-Edge { id, from, to, styleId, bends: [{x,y}], overrides? }
+## Explicit product decisions (October 2026)
+
+1. **Independent diagrams**, not graph views: each tab contains its own unrelated network. Duplicating a tab copies all nodes, links, positions and shelf states into independent data. The file is simply a collection of diagrams.
+2. **Shelf per diagram:** remove nodes from the visible canvas without deleting their records or links. Restore them later by click or drag. An edge is only drawn when both endpoints are visible.
+3. **Preset-based appearance, no semantics:** three default box styles and three default link styles. Presets define all appearance properties (shape, fill, outline, thickness, typography, line pattern etc). Nothing about a strong/weak edge is encoded in the model. Simulation is independent of those style presets.
+4. **Canvas-first overlay layout:** top-left general file commands, left map-preview rail, top-right contextual properties, right-side separate simulation, bottom centered tool strip, small zoom controls; all collapsible or context-sensitive. Native window title already displays the installed PWA; no app name/icon in the toolbar.
+5. **Icon-first:** reveal explanation only through tooltips or dialogs where necessary. Use real discoverable gestures and clear interaction feedback.
+6. **Keep types simple:** only text boxes and unlabelled, undirected lines for V2. Prioritize polish and reliability before images or rich notes.
+7. **Portable file:** self-contained, readable, versioned JSON stored as `.mindmap`, with desktop PWA file handler declaration plus fallbacks. No cloud or vendor lock-in.
+
+## Technical model
+
 ```
-Presets are document-level: changing a style updates all referencing objects across diagrams **in the same document**. Objects are not shared between maps. Runtime hover, selection, file handles, velocities and undo stacks never belong in saved JSON.
+Document v2
+  title
+  styles
+    nodes: [node style presets]
+    links: [link style presets]
+  maps: [diagram]
+    id, name, mode, viewport, physics
+    nodes: [id, text, x, y, styleId, pinned, shelved, overrides?]
+    edges: [id, from, to, styleId, bends, overrides?]
+```
 
-V1 compatibility: each former view of a shared graph is converted into an independent V2 map with the same view positions and bends. Original node shape/colour are preserved as overrides; former link strengths are approximated with the three appearance presets. It is a deliberate migration, not silently shared data.
+Styles are defined **per document**, reused across maps within that document. Presets are references by stable ID. Changing a preset re-renders all referencing objects. Later, support user presets and local overrides; preserve style-reference identity. Never share node/edge data across maps.
 
-## Interaction contract
-- Drag node to move; Shift-click to multi-select; drag connector port to another node or blank canvas to connect/create.
-- Hover an edge for midpoint handles; drag to insert bends. Existing bends remain editable.
-- Shelf selection/shelf all, undo/redo, drag/drop return from shelf, freeze/relax and pinning.
-- Node/edge preset properties are editable in a separate contextual panel; simulation toggle/settings never intrude into selected-object properties.
-- Preserve smoothness, keyboard controls, desktop and touch adaptability, reduced-motion support. No need for forced parenting, arrows or graph hierarchy.
+V1 migration: V1 had a single global nodes+edges graph and many view layouts. Migration creates **one independent copy of all graph objects per view**, preserving each view's positions/route bends and roughly mapping semantic link strength to a visual preset without retaining semantics. Original node shape and colour go into optional overrides. Migration happens only on file opening; save yields schema v2.
 
-## Engineering priorities
-Keep a dependency-free static GitHub Pages PWA if possible. Test map isolation, shelf/restore and retained links, presets propagation, edge routing, undo/redo, file round-trips, V1 migration and offline install lifecycle. Use versioned app-shell cache. Save As must not overwrite the previous file. File association support differs by OS/browser, so never rely on it as the only entry point.
+Runtime controls (file handles, hover state, selection, velocities, undo stack) are NOT part of the JSON file. Simulation freezes when opening a file.
 
-See `ROADMAP.md` for iterative work. The emphasis for V2.x is **craft, not complexity**.
+## Interaction
+
+- Drag boxes to move. Shift-click multi-select. Drag a small connector port to create a link; dropping onto empty space creates a linked node.
+- Hover an edge to expose midpoint; drag to introduce a bend. Drag a bend to edit it.
+- Shelf selected or shelf all. Shelving must preserve nodes and incident links; restoring restores connections when both endpoints are visible.
+- Right top popover displays only selected node/link properties, separate from right-side simulation toggle/settings.
+- Collapse the diagrams sidebar to gain canvas space; expand it to see live SVG preview thumbnails. Undo and redo are part of the first productive workflow.
+- Diagram creation and duplication are *not* merely alternate layout modes. They create independent data.
+
+## Engineering guardrails
+
+- No mandatory build system, no npm install, no backend; plain static root assets on GitHub Pages.
+- Safe JSON import with validation and V1 migration. Save As must never accidentally overwrite the previous file.
+- Browser OS file handler is best-effort; always offer import/download fallback.
+- Keep interaction tests covering map independence, shelving and link preservation, preset propagation, undo/redo, save/reopen and migration.
+- Prefer user-visible, delightful quality: good hit targets, easing, subtle shadows, responsive layout and keyboard consistency. Respect prefers-reduced-motion.
+- Never introduce semantic link types unless a later product decision deliberately requests them.
 
 ## Motion & feedback (V2.1)
 
-Motion must clarify placement and state instead of decorating the canvas. Fit and toolbar zoom may ease; pointer drag, wheel zoom and physics are immediate and interruptible. New nodes/links briefly enter; selected, shelved and restored ideas provide feedback. Respect reduced-motion preferences in CSS and JavaScript. Animation never belongs in the portable JSON file. Test pointer capture after rendering changes.
+Use motion to explain placement, transitions and state, not to decorate the canvas. Fit/toolbar zoom may ease toward a target, but gestures (drag, wheel, physics) must update immediately and remain interruptible. New nodes/links get brief one-shot entrances; selection, shelf/restore and simulation have unobtrusive feedback. Respect reduced-motion preferences in CSS and JavaScript. Never put animation state or transient effects into the portable JSON document. Test pointer capture and performance for direct manipulation after any rendering change.
 
-## V2.2 Gesture contract
+## Gestures — V2.2 decisions
 
-- Independent diagrams and the portable JSON v2 schema are unchanged.
-- Selection is transient: Shift-click toggles, Shift-drag draws an additive marquee, a select-tool button enables rectangle selection, Ctrl/Cmd+A selects visible nodes. No selection state in the JSON file.
-- Dragging a selected node moves the selected group directly under the pointer and forms one undo checkpoint; no easing/lag during drag.
-- Two active touch pointers zoom/pan around their midpoint. A second touch rolls back unfinished single-pointer object drag; finger release must not accidentally add nodes or connections. Touch long-press adds a node to selection.
-- Node connection handles have enlarged invisible targets; candidate node snapping highlights a valid destination. Drop on blank canvas creates a linked node; dropping over floating controls or onto the source does not.
-- Use native keyboard semantics in input fields, meaningful icon labels, reduced-motion support, and browser gesture regression tests. Real devices still need manual validation.
+- **Selection:** Shift-click toggles nodes; Shift+drag draws an additive selection marquee; the bottom-toolbar selection tool enables region selection without modifiers; Ctrl/Cmd+A selects visible nodes. Selection never mutates the document and is not serialized.
+- **Moving groups:** dragging a selected node moves every selected node at once; save the positions in one undo checkpoint. Do not animate or lag the dragged geometry relative to the pointer.
+- **Touch:** two active pointers control zoom and pan around their midpoint; entering pinch must cancel any in-progress single-pointer drag before changing the camera. A touch long press adds the touched node to selection. Prioritise gesture arbitration and prevent accidental node creation during pinch.
+- **Connecting:** enlarged invisible hit target around the visible port; use proximity snapping to a valid node and visual feedback during drag. Do not create a linked node when dropping onto a floating panel or back onto the source node.
+- **Accessibility:** controls have labels/tooltips and selected tool has `aria-pressed`; respect reduced motion; preserve normal text-input editing and keyboard shortcuts.
+- **Testing:** headless Chromium renders plus mouse selection / undo and Chrome DevTools Protocol real-touch-event emulation. Physical Android and Windows tablet tests remain advisable. The portable JSON schema is still v2.
+
+## V2.3 — design/implementation decisions
+
+- Curves are **a rendering of the existing bend-point polyline**, not an additional set of editable Bézier handles. A bounded Catmull–Rom-to-cubic interpolation passes through node boundary endpoints and every user bend, with C1-continuous tangents. SVG hit paths use the exact same curve as visible strokes. Hover/selection midpoint indicators follow curve segment geometry. Right-click a user-defined bend to remove it. All edits should be undoable.
+- New document defaults are black-and-white only (black ink and three line/node treatments; completely transparent node fills). This does not recolour previously saved projects. Preserve other document styles and overrides.
+- Document style definitions contain named presets; IDs remain stable, and `styleId` references are document-wide (across independent diagrams). New presets duplicate an existing style and receive a new unique ID. Removing a preset safely retargets references in every map. Preset properties are editable, not semantic categories.
+- Colours use CSS-compatible 8-digit hex (`#RRGGBBAA`) for alpha, plus existing opaque 6-digit form. Editing the RGB channels must preserve the chosen opacity; editing opacity must preserve RGB. Apply to node fill, outline, text and link stroke.
+- UI dark mode is an app preference (browser localStorage), separate from the portable document. Default black ink is **visually lightened at render time** against the dark canvas without mutating stored style data. Avoid unexpected recolouring of custom non-black colours. Keep controls floating and collapsible.
+- Regression criteria: save and reopen custom presets and transparency; existing v2 files load; bend deletion/Undo works; spline passes through all bends with tangent continuity; no console errors or hidden file mutations on theme switches.
+
+## V2.4 — Interaction simplification (supersedes conflicting earlier assumptions)
+
+**Latest authoritative direction:** An independent diagram owns its *entire* appearance system; styles are now **per diagram, not per file**. Schema v3 replaces `document.styles` with `map.styles` and adds `map.defaultNodeStyleId` and `map.defaultLinkStyleId`. Importing v2 clones its shared styles into every map; v1 import is chained through v2 migration. These changes supersede the earlier document-wide preset decision above.
+
+- Default left-click selects; dragging left on empty canvas creates a marquee. Shift-click and Shift-drag add to selection. Right-drag anywhere pans; right-click on an authored bend deletes it only if there was no drag. Two-finger pinch still navigates on touch.
+- Middle-click deletes a node, link, or existing bend immediately. Every deletion must be undoable. The keyboard Delete/Backspace remains fully supported for trackpads and touch users. Avoid hijacking mouse interaction over floating chrome.
+- Editing text occurs **in place** over the visible SVG node with a transparent textarea; its screen size, font, ink and position follow the node. No detached editing popup. Commit on blur or Ctrl+Enter, cancel with Escape.
+- Selection reveals a tiny floating contextual toolbar directly above selected objects. It contains available preset swatches, pin, shelf and delete. Selection actions must NOT also occupy permanent bottom toolbar space.
+- The right panel is a **style palette/editor only**, independent of selection. Simulation stays in its own panel. The palette uses a small, bounded set of choices; detailed style editing stays collapsed until requested. The bottom toolbar includes a focus button that hides everything except its own return control.
+- Selecting a style for objects updates the diagram's last-used preset of that type. A newly created box or line inherits that value. Duplicated diagrams copy their styles and defaults, then evolve independently.
+- Autosave is two-tier: write to a linked file only if write permission was **already granted**, plus best-effort IndexedDB recovery snapshots. A recovery snapshot does NOT mean a real local file was saved. Unlinked docs still require explicit Save/download. Never store file handles, history or runtime pointers in JSON.
+- Preserve existing `.mindmap` data by importing v1 and v2 into schema v3 rather than rewriting objects in place without validation. Theme preference remains local UI state, not file data.
+
+## Test contract for V2.4
+
+Area-selection must not pan, and right-drag panning must not select. Selection is ephemeral. Group drag creates one undo checkpoint. No action may accidentally create a node during a right-button pan. Selected style -> next created object inherits it, for both nodes and links; duplicating a map and editing a preset leaves the original map unchanged. Editing text does not change object positions. Saving and reopening a v3 file roundtrips styles/defaults; importing v2 migrates cleanly. Focus mode must have an accessible exit control and work at mobile widths. Check all variants under both UI themes and reduced-motion settings.
 
 
-## V2.3 decisions
-
-Curved connections are an SVG representation of existing `bends` coordinates, using a C1-continuous interpolating spline through node boundary endpoints and user bend points; no extra Bézier handles or file migration. Hit-testing must use exactly the visible curve. Existing bend handles remain draggable; right-click one to delete it, with undo support.
-
-Style presets are document-wide definitions referenced across independent diagrams. New files get three black/white transparent-fill node styles and three black link styles; old files retain custom colour schemes. Arbitrarily many presets are supported. On preset deletion, references in every diagram are reassigned safely. Colour editing preserves opacity when RGB changes and vice versa; use `#RRGGBBAA` for alpha. Dark mode is an app preference, separate from portable file data, and makes default black ink legible without mutating styles.
-
-
-## V2.4 — authoritative decisions (supersede earlier contrary guidance)
-
-**Styles are per diagram** now: document v3 contains only title, maps; each map carries styles, defaultNodeStyleId and defaultLinkStyleId. Duplicating a diagram clones styles and its node/link data. V2 files with document-wide styles migrate by cloning styles into every map. V1 still migrates via v2.
-
-The canvas owns the experience: left drag blank area marquee-selects, right drag anywhere pans, Shift modifies selection, right-click on a bend deletes it. Middle-click directly deletes nodes, edges or authored bends and must always be undoable. Keep mouse gestures immediate and avoid moving the camera on left click.
-
-Double-click edits the label *inside the shape* with typography, bounds and colours matched to that node, not a detached popup. Selecting objects reveals a small anchored toolbar with style swatches, pin, shelf and delete. Keep the right floating panel for styles only, with a compact preset editor and a separate simulation panel; remove duplicate toolbar actions. A focus toggle hides the chrome, retaining an accessible exit control.
-
-The last-selected preset in each category becomes the active default for subsequent nodes/links in that diagram. Prefer sparse discrete type sizes, weights, strokes, rounding and opacity stops over arbitrarily fine controls.
-
-Autosave is conditional: a previously approved File System Access handle can be written without re-prompting. Independently maintain an IndexedDB session recovery draft; it is not equivalent to saving a portable file, and the unsaved indicator must only clear after a successful disk write or explicit download. The service worker caches app assets only.
-
-V2.4 regression scope: default marquee, right pan, bend deletion, middle click + undo, group drag, inline editing, style defaults, independent-map preset edits, V2→V3 migration, saved JSON roundtrip, mobile collapsed controls, focus, reduced motion and offline cache update.
+## V2.5 — Monochrome UI and one-sidebar layout
+- All application chrome is achromatic; custom diagram style colours remain editable and persist in source JSON.
+- Dark mode inverts the entire rendered interface with a single root filter; this deliberately inverts any non-grayscale diagram colours too. No saved document colour values are changed.
+- A single collapsible left rail contains four tabs: Diagrams, Styles, Simulation and Shelf. The top file commands and small bottom editing toolbar remain; redundant right panels and floating shelf are retired.
+- Four offset connector handles (top, right, bottom, left) have larger visible circles and generous transparent hit regions. Link previews originate at the chosen handle.
+- The v3 `.mindmap` schema is unchanged; all older files continue to load.
+- Focus mode hides the rail and topbar as before. Test on actual touch hardware and check Chromium PWA file association separately.
 
 
-## V2.5 interface contract
-
-- The editor is a canvas-first application: **one unified, collapsible left sidebar** (Diagrams, Styles, Simulation, Shelf), a quiet file toolbar above, and a minimal bottom tool strip. Do not resurrect separate right properties/simulation panels.
-- Every *application chrome* colour must be neutral/achromatic. Styles stored for graph objects can contain arbitrary RGBA hex colours.
-- Dark mode uses **one root inversion filter**; it must not do additional per-object dark ink substitution or edit the stored JSON. Check colour controls and chrome after inversion.
-- When a node is selected or hovered, show four visibly larger connector ports at top/right/bottom/left **offset outward** from the object's outline, with generous invisible hit zones. Connecting from a port should visually start at that port. Keep the selection toolbar clear of the top port.
-- Interaction tests must cover mobile/touch CSS, gesture hit-testing, new-node drag, shelf restoration, simulation, dark invert, save/reopen, and v3 compatibility.
+## V2.6 quality contract
+- Keep current `.mindmap` v3 JSON backward compatible; content data only, never include browser handles.
+- All writes to a linked file must be serialized. Check linked-file metadata where available, and never silently overwrite an external modification.
+- Recovery drafts are last-resort IndexedDB data, not files. Protect them against stale async completions when opening new documents.
+- Editing in flight must not clear the unsaved indicator after an older snapshot has been written.
+- Arrow nudges, cluster duplicate, inline edit, and curve bend edits must stay undoable, without introducing permanent toolbar controls.
+- Maintain the browser regression suite, and do not mistake document-injection tests for full PWA installation/OS integration tests.

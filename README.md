@@ -1,102 +1,101 @@
-# Mindmap V2.4
+# Mindmap V2.6
 
-**The canvas is the application.** A local-first PWA for independent mind maps stored together in one portable file.
+**The canvas is the application.** An offline-capable, local-first PWA for independent diagrams in one portable `.mindmap` file. Static HTML/SVG/JS; no external dependencies or build step.
 
-## Run
-Published app: https://teodor-andonov.github.io/261019-1740_pwa-mindmap/
+## Start
 
-Or locally, run `python -m http.server 8080` from the repository root. No npm, build step, backend or account.
+Run `python -m http.server 8080` from the project folder and visit `http://localhost:8080`, or use [the published app](https://teodor-andonov.github.io/261019-1740_pwa-mindmap/). The installed PWA works offline after the shell is cached. User diagrams are never uploaded to GitHub Pages.
 
-## Architecture
+## Controls
 
-**Current schema:** v3 has `maps[].styles`, `maps[].defaultNodeStyleId`, and `maps[].defaultLinkStyleId`. Older V1/V2 files are migrated on open, and the migrated document is written only when you Save.
-
-- A `.mindmap` file is plain JSON (`version: 3`), holding multiple **independent diagrams**. Duplicate creates entirely separate nodes, edges and positions; changes do not propagate between diagrams.
-- Each diagram owns its shelf, nodes, undirected links, routes, viewport, pins and physics. Shelf hides nodes without deleting them or their connections.
-- The document stores **three default node styles and three default link styles**; each node or link references a preset via `styleId`. Presets define appearance only, never connection semantics. Changing a preset affects all its objects in the current file. The JSON schema also supports local overrides, and the UI can reset them.
-- Opening an old V1 `.json` converts each of its former shared-graph views into a **separate independent V2 diagram**. Then save the result as `.mindmap`.
-- Versioned service worker caches only the static app shell, not your document.
-
-## Canvas controls
-| Action | How |
+| Action | Gesture / control |
 |---|---|
-| New node | Bottom +, N, or double-click empty canvas |
-| Edit / move | Double-click node / drag it |
-| Multi-select | Shift-click |
-| Connect | Drag a node's port to another node |
-| Connected node | Drag a port to empty canvas |
-| Link bends | Hover/select line, drag segment midpoint; drag bend to reposition |
-| Shelf / restore | Select nodes → archive; open shelf and click/drag saved nodes |
-| Shelf all | Shelf drawer archive button |
-| Diagram management | Left preview rail: +, three-dot menu, double-click to rename |
-| Physics | Right separate Relax/Freeze control (Space), settings via slider icon |
-| Pin | Select node → pin or P |
-| Pan / zoom / fit | Drag empty background, wheel, fit or F |
-| Undo / redo | Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y |
-| Save / Save As / Open | Ctrl+S / Ctrl+Shift+S / Ctrl+O |
+| Select node or link | Left-click; Shift-click to add/remove nodes |
+| Box select | Left-drag any empty canvas space; Shift-drag to add to selection |
+| Move one or multiple nodes | Drag a selected node |
+| Pan canvas | Right-drag anywhere; two-finger drag on touch devices |
+| Zoom | Wheel, two-finger pinch, zoom controls |
+| Edit text | Double-click node, then type **directly inside its shape**; Ctrl/Cmd+Enter commits, Escape cancels |
+| Create a node | Bottom +, `N`, or double-click blank space |
+| Connect nodes | Drag the small connector at the centre of the selected node's lower edge; drop on another node or empty canvas |
+| Curve a link | Click the link, then drag its midpoint; edit any existing bend |
+| Remove an authored bend | Right-click bend point (stationary), middle-click bend point, or Undo |
+| Delete node or link | Middle-click directly on it, or select and press Delete/Backspace; Undo restores it |
+| Style selection | Select object(s), choose one of the appearance swatches in the **floating selection toolbar** |
+| Shelf or pin | Select node(s), then use the contextual shelf / pin icons, or Shift+S / P |
+| Edit styles | Expand **Styles** top-right; switch Box/Link; choose style; expand Edit style for limited controls |
+| New style | Styles → Add; presets live **within the current diagram** |
+| Focus | Bottom focus button or `H`; `Escape` restores controls |
+| Relax/freeze | Top-right simulation button or `Space`; separate simulation settings |
+| Undo / redo | Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z |
+| Save / Save As | Top-left disk controls, Ctrl/Cmd+S / Ctrl/Cmd+Shift+S |
+| Open document | Top-left folder, Ctrl/Cmd+O, or drag `.mindmap` / `.json` onto the app |
 
-Top-left floating file controls show the document name, but deliberately no redundant app branding. The sidebar, shelf and property/simulation panels can be collapsed, and most tools are icon-first with tooltips.
+**Touch:** long-press a node to extend selection; pinch with two fingers to pan and zoom. Panning on touch remains two-finger to leave one-finger gestures for object operations and selection.
 
-## File association
-The PWA manifest declares `.mindmap` and `.json` file handlers on supporting desktop Chromium installs. Registration depends on OS/browser support and user permissions. If file associations or direct file access aren't available, the app still opens local files and downloads portable `.mindmap` files. Saving is explicit (amber dot shows unsaved edits).
+## File model — v3
 
-## Files
-- `index.html` — complete dependency-free app and renderer
-- `manifest.webmanifest` — installation and file handlers
-- `sw.js` — offline app-shell cache
-- `AGENT_BRIEF.md` — design intent, architecture and decisions
-- `ROADMAP.md` — next milestones and quality work
+One document holds independently editable diagrams. **Each diagram owns its node and link styles** plus its *last-used box style* and *last-used link style*. Duplicating a diagram duplicates everything. Changes to a preset affect only objects in that diagram, not other diagrams in the same file.
 
-GitHub Pages deploys directly from `main` / `/(root)`; no custom Actions.
+```json
+{
+  "version": 3,
+  "title": "My research",
+  "maps": [{
+    "id": "m_1", "name": "Idea study",
+    "styles": {
+      "nodes": [{ "id": "node-a", "name": "Rounded", "shape": "rounded", "fill": "#ffffff00", "stroke": "#000000", "strokeWidth": 2, "textColor": "#000000", "fontSize": 15, "fontWeight": 600, "radius": 16 }],
+      "links": [{ "id": "link-a", "name": "Regular", "stroke": "#000000", "strokeWidth": 2, "dash": "" }]
+    },
+    "defaultNodeStyleId": "node-a", "defaultLinkStyleId": "link-a",
+    "nodes": [{ "id": "n_1", "text": "Idea", "x": 0, "y": 0, "styleId": "node-a", "pinned": false, "shelved": false }],
+    "edges": [], "mode": "static", "physics": { "length": 165, "repulsion": 2400, "gap": 22 },
+    "viewport": { "x": 300, "y": 200, "zoom": 1 }
+  }]
+}
+```
 
-## Known limits
-This is a foundation release. Touch/pinch gestures, per-object style override editing, arbitrary preset creation, conflict-safe autosaving and large-graph physics need further work. No images, rich text, collaboration or cloud sync yet.
+New objects inherit the active default style for their kind. Selecting another style for an object also sets the default for subsequently created objects *in that diagram*. New documents start with three monochrome box presets and three monochrome link presets; colours accept 8-digit `#RRGGBBAA` alpha.
 
-## V2.1 — Motion and interaction polish
+The app supports both legacy v1 shared-graph JSON files (each view becomes an independent map) and v2 files with document-wide styles (each map gets its own cloned styles on import). On the next save the format becomes v3. **Keep a backup of important v1/v2 documents before saving a migrated version.**
 
-- Eased Fit/toolbar zoom; dragging, wheel zoom and physics remain direct and interruptible.
-- New node entrance, link tracing, magnetic connection-target glow and subtle drag-release feedback.
-- Shelf/restore travel cues and more polished floating panels, menus, cards and simulation control.
-- Reduced-motion preference respected in both CSS and JavaScript.
-- Existing `.mindmap` schema unchanged; independent diagram and shelf behavior retained.
+## Autosave, recovery and file association
 
-## V2.2 · Gesture quality
+- If you opened or saved a file through Chromium's File System Access picker, **autosave writes back to that linked file after a brief idle delay**, but only when the browser has already granted write access. It does not pop up a permission dialog automatically.
+- Regardless of a file link, the app tries to maintain a local IndexedDB **recovery draft**. On reopening after an unsaved session, it offers to restore it. Browser storage can be cleared by private mode, device cleanup or site-data resets; it is **not** a substitute for a saved `.mindmap` file.
+- When direct file access is unsupported or permission is missing, use Save to download a local copy. The orange unsaved indicator remains until a real file save/download succeeds.
+- GitHub Pages stores **application code only**, not personal diagrams. The service worker caches the app shell, not document files.
+- The installed Windows PWA declares a `.mindmap` file handler, subject to browser/OS support and permission. Ordinary Open still works on unsupported platforms.
 
-- **Select:** Shift-click nodes, or Shift+drag to draw a marquee. The bottom-toolbar rectangle-selection icon (`V`) enables touch-friendly selection; Ctrl/Cmd+A selects all visible nodes.
-- **Touch:** long-press a node for additive selection; two fingers pinch to zoom and pan together. A second touch cancels an unfinished single-finger drag.
-- **Move groups:** dragging any selected node moves the selection as a unit and creates one undo checkpoint. Shelf works for the whole selection.
-- **Connect:** larger invisible connector hit targets and proximity snapping make it easier to connect on touchscreens; dropping in blank space creates a new connected node.
-- **Testing:** desktop Chromium and CDP touch-event tests cover area selection, group move/undo, shelf/undo, link creation, long-press and pinch. Actual Windows/Android device tests remain desirable.
+## Source
 
-The on-disk document schema remains version 2; existing `.mindmap` files are compatible.
+`index.html` is the single application source; `sw.js` is the service worker; `manifest.webmanifest` registers the app/file handler; PNG files are PWA icons. `ROADMAP.md` and `AGENT_BRIEF.md` document product decisions and future changes.
 
+## Known limitations
 
-## V2.3 — Smooth links, presets and dark mode
-
-- **Smooth links:** the existing saved polyline bend points now render as smooth, continuous cubic splines passing through every point. Select or hover a link to expose midpoint and bend handles. Drag a midpoint to add a bend; **right-click an authored bend to remove it**, and Ctrl/Cmd+Z to undo. No schema migration.
-- **Presets:** a new document starts with three monochrome node styles (black outlines/text and fully transparent fills) and three black link styles. Select a node or link and use **New** in Properties to create a preset. Presets can be renamed, edited, duplicated and deleted. Deleting a preset reassigns affected objects in all diagrams to the first remaining style. Existing documents keep their saved palettes.
-- **Opacity:** independently adjust fill, outline, text and link colour via colour picker and opacity slider (0–100%). Six-digit hex is opaque; eight-digit `#RRGGBBAA` stores transparency. The existing `.mindmap` version 2 schema supports both.
-- **Dark mode:** the moon/sun button in the top toolbar switches both floating UI and canvas; saved as a browser-only preference. Default black ink is rendered light on dark canvas without modifying its JSON style values. Custom non-black colours remain unchanged.
-
-No additional content types, dependencies, server or build tools. The core file/gesture flows remain unchanged.
-
-
-## V2.4 interaction contract and file model
-
-- **Left-drag empty space:** box selection; Shift-drag adds to current selection. **Right-drag anywhere:** pan. **Right-click an existing bend:** remove it.
-- **Middle-click:** remove a node, link or authored bend under the pointer; Ctrl/Cmd+Z undoes deletion. Keyboard Delete/Backspace remains supported for touch/trackpads.
-- Double-click to type directly within a box. Selected objects show a small floating toolbar for styles, pin, shelf and delete instead of permanent selection actions in the bottom bar.
-- A newly created node or link inherits the last selected **box or link style** for the active diagram. Presets, overrides and defaults are per diagram; duplicating a diagram deep-copies them. The styles panel has compact discrete choices; the simulation panel is separate.
-- **Focus mode (H)** hides all other floating controls while retaining its exit button; Escape also restores the interface.
-- **Autosave:** linked files are automatically written after a short idle period only if the browser has already granted write permission. All documents also attempt IndexedDB recovery snapshots, but **browser recovery is not a disk file**. Use Save/Save As to export when direct access is unavailable.
-- **File format:** `.mindmap` is now schema v3 (`maps[].styles`, `maps[].defaultNodeStyleId`, `maps[].defaultLinkStyleId`), with automatic migration from V1/V2 files. Back up important old files before saving migrated documents.
-- Installable PWA, same URL and static GitHub Pages workflow. No account or backend is introduced.
+Real-device Windows/Android behavior, autosave durability and PWA file association need testing outside headless Chromium. The current renderer recreates SVG elements while dragging, and is designed for small/medium maps, not thousands of nodes. Middle-click deletion is reversible but should be used deliberately; trackpad/touch users can use Delete/Backspace instead.
 
 
-## V2.5 — monochrome canvas and unified sidebar
+## V2.5 — Monochrome UI and one-sidebar layout
+- All application chrome is achromatic; custom diagram style colours remain editable and persist in source JSON.
+- Dark mode inverts the entire rendered interface with a single root filter; this deliberately inverts any non-grayscale diagram colours too. No saved document colour values are changed.
+- A single collapsible left rail contains four tabs: Diagrams, Styles, Simulation and Shelf. The top file commands and small bottom editing toolbar remain; redundant right panels and floating shelf are retired.
+- Four offset connector handles (top, right, bottom, left) have larger visible circles and generous transparent hit regions. Link previews originate at the chosen handle.
+- The v3 `.mindmap` schema is unchanged; all older files continue to load.
+- Focus mode hides the rail and topbar as before. Test on actual touch hardware and check Chromium PWA file association separately.
 
-- Everything in application chrome uses greyscale colours. Diagram content may still use custom colours.
-- The dark-mode toggle inverts the **whole rendered page** (UI, canvas, diagrams, and colours). It leaves JSON colour values unchanged. With coloured custom styles, what appears on screen is the inverse colour in dark mode.
-- One collapsible left rail hosts four icon tabs: **Diagrams, Styles, Simulation, Shelf**. The former floating right panels and floating shelf are removed. The file toolbar and small bottom tool strip remain.
-- Each node has **four larger, offset connection ports**, one on each side. Drag any port to another node or blank canvas. Selection toolbars sit above the top port to prevent obstruction.
-- The app and mobile sidebar CSS were repaired for non-hover devices. The existing v3 `.mindmap` schema remains unchanged.
+
+## V2.6 — Reliability & keyboard quality
+- Saving to a linked file is now serialized: manual Save and autosave cannot interleave writes.
+- On supporting file handles, an external modification to a linked file blocks overwrites and prompts Save As.
+- Recovery drafts are snapshot-based and ordered, preventing a delayed save from overwriting a newer recovery state.
+- Opening/resetting documents invalidates old queued writes; saving during further edits does not incorrectly clear the unsaved indicator.
+- Double-click a link to insert an editable spline bend at the closest point. Arrow keys nudge selected nodes 1 canvas unit; Shift+arrow uses 10 units. Consecutive repeats form one Undo step. Enter edits a selected box in place. Ctrl/Cmd+D duplicates the selected nodes and their internal links as an offset group (one Undo step).
+- File schema stays at version 3. The IndexedDB recovery draft is **not** a substitute for a saved `.mindmap` file.
+
+
+## Repeatable browser checks
+
+Install development dependencies with `pip install -r requirements-dev.txt`, then run `pytest -q tests/test_browser.py`. The tests run headless Chromium (use `CHROMIUM_PATH` if required, or install Playwright Chromium with `python -m playwright install chromium`). They exercise editing and duplication, keyboard nudge/Undo, linked-file serial saves, external-file conflict protection, and Save As.
+
+The suite injects the HTML document into a browser page so it also runs in restricted CI environments. **It does not validate** service worker installation, genuine OS file associations, or persistence across real-origin browser restarts; these still need a real-device/manual pass.
