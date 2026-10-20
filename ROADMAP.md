@@ -128,3 +128,12 @@ Next: verify real Windows/Android PWA and tablet gestures; increase coverage for
 - Theme: Precise, Loose and Hand-drawn affect node outlines AND links, with deterministic, smooth curves. Handwriting affects node text, editor and export. Each diagram has editable background colour, also used on export.
 - Performance: panning and zooming change the SVG camera without recreating nodes. Dragging and simulation update existing SVG shapes on animation frames. Physics dimensions are cached per tick.
 - File schema remains version 3. Browsers need local handwriting fonts or use cursive fallback. Real Windows/Android tests and large-graph profiling remain outstanding.
+
+
+## V2.9 — Theme and rendering repair
+- [x] One overall Theme per document (v4), for every diagram and export.
+- [x] Single Ink colour for box outline and text.
+- [x] Visible, smooth hand-drawn shapes, links and per-character text treatment.
+- [x] Preserve old document migration and undo/save behaviour.
+- [ ] Verify fonts and gesture performance on physical Windows/Android installs.
+

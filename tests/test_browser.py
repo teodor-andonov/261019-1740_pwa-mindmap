@@ -92,7 +92,7 @@ def test_recovery_and_autosave_serialization():
         with page.expect_download() as info:
             page.locator('#saveFile').click()
         seed=Path(info.value.path()).read_text()
-        assert json.loads(seed)["version"] == 3
+        assert json.loads(seed)["version"] == 4
         ctx.close()
         ctx=browser.new_context()
         page=ctx.new_page()

@@ -212,6 +212,7 @@ body.focus-mode #railTabs{pointer-events:none}
 #stage[data-background="dots"]{background-image:radial-gradient(#8f8f8f66 .75px,transparent 1px)}
 #stage[data-background="grid"]{background-image:linear-gradient(to right,#aaaaaa55 1px,transparent 1px),linear-gradient(to bottom,#aaaaaa55 1px,transparent 1px)}
 #stage[data-background="paper"]{background-image:none}
+#interactionLayer .snap-guide{stroke:#777;stroke-width:1;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;pointer-events:none;opacity:.7}
 #rail-shelf.drop-ready{background:#cfcfcf!important;outline:2px solid #aaa;outline-offset:-2px}
 #railDeck.drag-to-shelf{outline:1.5px dashed #999;outline-offset:-3px}
 /* Touch shelf gestures: horizontal movement drags, vertical movement can scroll the list. */
@@ -289,17 +290,17 @@ const $=id=>document.getElementById(id);const uid=p=>p+'_'+(crypto?.randomUUID?.
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const deep=x=>JSON.parse(JSON.stringify(x));const ico=name=>`<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const defaultStyles=()=>({nodes:[
-{id:'node-a',name:'Underline',shape:'underline',equalXY:false,fill:'#ffffff00',stroke:'#000000',strokeWidth:1.25,textColor:'#000000',fontSize:15,fontWeight:500,radius:0},
-{id:'node-b',name:'Rounded',shape:'rectangle',equalXY:false,fill:'#ffffff00',stroke:'#000000',strokeWidth:1.25,textColor:'#000000',fontSize:15,fontWeight:500,radius:16},
-{id:'node-c',name:'Circle',shape:'ellipse',equalXY:true,fill:'#ffffff00',stroke:'#000000',strokeWidth:1.25,textColor:'#000000',fontSize:15,fontWeight:500,radius:0}],
+{id:'node-a',name:'Underline',shape:'underline',equalXY:false,fill:'#ffffff00',stroke:'#000000',strokeWidth:1.25,fontSize:15,fontWeight:500,radius:0},
+{id:'node-b',name:'Rounded',shape:'rectangle',equalXY:false,fill:'#ffffff00',stroke:'#000000',strokeWidth:1.25,fontSize:15,fontWeight:500,radius:16},
+{id:'node-c',name:'Circle',shape:'ellipse',equalXY:true,fill:'#ffffff00',stroke:'#000000',strokeWidth:1.25,fontSize:15,fontWeight:500,radius:0}],
 links:[{id:'link-a',name:'Solid',stroke:'#00000080',strokeWidth:1.25,dash:''},{id:'link-b',name:'Dashed',stroke:'#00000080',strokeWidth:1.25,dash:'7 7'},{id:'link-c',name:'Dotted',stroke:'#00000080',strokeWidth:1.25,dash:'0.1 5'}]});
 const physicsDefault=()=>({length:165,repulsion:2400,gap:22});
 const defaultDiagramTheme=()=>({character:'precise',typeface:'sans',background:'dots',backgroundColor:'#f7f7f7'});
 const themeOptions={character:['precise','loose','hand-drawn'],typeface:['sans','mono','handwritten'],background:['plain','dots','grid','paper']};
-const diagramTheme=()=>map().theme||defaultDiagramTheme();
-const FONT_FAMILIES={sans:'Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif',mono:'Consolas,Menlo,Monaco,monospace',handwritten:"'Comic Neue','Comic Sans MS','Segoe Print','Bradley Hand',cursive"};
-const freshMap=(name='Diagram 01')=>({id:uid('m'),name,nodes:[],edges:[],styles:defaultStyles(),defaultNodeStyleId:'node-a',defaultLinkStyleId:'link-a',theme:defaultDiagramTheme(),physics:physicsDefault(),viewport:{x:0,y:0,zoom:1},mode:'static'});
-const freshDoc=()=>({version:3,title:'Untitled',maps:[freshMap()]});
+const diagramTheme=()=>doc.theme||defaultDiagramTheme();
+const FONT_FAMILIES={sans:'Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif',mono:'Consolas,Menlo,Monaco,monospace',handwritten:"'Segoe Print','Comic Neue','Comic Sans MS','Bradley Hand',cursive"};
+const freshMap=(name='Diagram 01')=>({id:uid('m'),name,nodes:[],edges:[],styles:defaultStyles(),defaultNodeStyleId:'node-a',defaultLinkStyleId:'link-a',physics:physicsDefault(),viewport:{x:0,y:0,zoom:1},mode:'static'});
+const freshDoc=()=>({version:4,title:'Untitled',theme:defaultDiagramTheme(),maps:[freshMap()]});
 const demo=()=>{const d=freshDoc(),m=d.maps[0];m.name='Exploration 01';const data=[[-210,-10,'Big idea','node-a'],[-20,-145,'Questions','node-c'],[35,110,'Research','node-b'],[160,-115,'Experiments','node-c'],[250,80,'Decisions','node-a'],[445,110,'Next steps','node-b']];m.nodes=data.map(([x,y,text,styleId])=>({id:uid('n'),text,x,y,styleId,pinned:false,shelved:false}));for(const [a,b,s] of [[0,1,0],[0,2,0],[1,3,1],[2,4,1],[3,4,2],[4,5,0]])m.edges.push({id:uid('e'),from:m.nodes[a].id,to:m.nodes[b].id,styleId:m.styles.links[s].id,bends:[]});return d};
 let styleEditorKind='nodes',styleEditorId=null,focusMode=false,autosaveTimer=0;
 // Document epochs prevent writes from an old document affecting a newly opened one.
@@ -387,17 +388,24 @@ function nudgeSelection(dx,dy){
 function validateDocument(raw){
  if(!raw||typeof raw!=='object')throw Error('Invalid document');
  if(raw.version===1)raw=migrateV1(raw);
- if(raw.version!==2&&raw.version!==3)throw Error('Unsupported Mindmap file');
+ if(![2,3,4].includes(raw.version))throw Error('Unsupported Mindmap file');
  const result=deep(raw),shared=raw.version===2?(raw.styles||defaultStyles()):null;
- result.version=3;delete result.styles;result.title=String(result.title||'Untitled');
+ // Migrate per-diagram skins to one file-wide skin. On conflicting old skins, the first diagram wins.
+ const incomingTheme=raw.theme&&typeof raw.theme==='object'?raw.theme:(raw.maps?.[0]?.theme||{});
+ result.version=4;delete result.styles;result.title=String(result.title||'Untitled');
+ result.theme=defaultDiagramTheme();
+ for(const key of Object.keys(themeOptions))if(themeOptions[key].includes(incomingTheme[key]))result.theme[key]=incomingTheme[key];
+ if(/^#[0-9a-f]{6}$/i.test(incomingTheme.backgroundColor||''))result.theme.backgroundColor=incomingTheme.backgroundColor;
  if(!Array.isArray(result.maps)||!result.maps.length)throw Error('Document contains no diagrams');
  const mids=new Set();result.maps=result.maps.filter(m=>m&&typeof m.id==='string'&&!mids.has(m.id)&&mids.add(m.id));
  if(!result.maps.length)throw Error('Document contains no diagrams');
  for(const m of result.maps){
   m.name=String(m.name||'Diagram');m.styles=m.styles||deep(shared||defaultStyles());
-  const rawTheme=m.theme&&typeof m.theme==='object'?m.theme:{};m.theme=defaultDiagramTheme();for(const key of Object.keys(themeOptions)){if(themeOptions[key].includes(rawTheme[key]))m.theme[key]=rawTheme[key]}if(/^#[0-9a-f]{6}$/i.test(rawTheme.backgroundColor||''))m.theme.backgroundColor=rawTheme.backgroundColor;
+  delete m.theme; // Presentation is document-wide; object styles remain diagram-local.
 
   for(const kind of ['nodes','links'])if(!Array.isArray(m.styles[kind])||!m.styles[kind].length)m.styles[kind]=defaultStyles()[kind];
+  for(const style of m.styles.nodes)delete style.textColor; // Text and outline now share one Ink colour.
+  for(const n of m.nodes||[])if(n.overrides)delete n.overrides.textColor;
   m.defaultNodeStyleId=m.styles.nodes.some(s=>s.id===m.defaultNodeStyleId)?m.defaultNodeStyleId:m.styles.nodes[0].id;
   m.defaultLinkStyleId=m.styles.links.some(s=>s.id===m.defaultLinkStyleId)?m.defaultLinkStyleId:m.styles.links[0].id;
   m.physics={...physicsDefault(),...m.physics};m.mode='static';m.viewport=m.viewport||{x:0,y:0,zoom:1};
@@ -488,9 +496,17 @@ function sketchedCurve(points,id,amount){
  const v=(point,j,scale=1)=>({x:point.x+textureNoise(seed,j*2)*amount*scale,y:point.y+textureNoise(seed,j*2+1)*amount*scale});
  return'M'+points[0].x.toFixed(1)+' '+points[0].y.toFixed(1)+segments.map((s,i)=>{const a=v(s.c1,1+i*3),b=v(s.c2,2+i*3);return` C${a.x.toFixed(1)} ${a.y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)} ${s.b.x.toFixed(1)} ${s.b.y.toFixed(1)}`}).join('');
 }
+// A controlled, deterministic handwriting rhythm even on devices without a handwriting font.
+function textLineAttrs(line,id,lineIndex){
+ const theme=diagramTheme();
+ if(theme.typeface!=='handwritten'&&theme.character!=='hand-drawn')return'';
+ const seed=textureSeed(id+'-'+lineIndex),strong=theme.typeface==='handwritten';
+ const turns=Array.from(line).map((_,i)=>(textureNoise(seed,i)* (strong?8.5:5.8)).toFixed(1)).join(' ');
+ return ` rotate="${turns}" letter-spacing="${strong?1:.4}"`;
+}
 function inkShape(n,s,d,rx){
  const kind=s.shape==='circle'?'ellipse':s.shape==='rounded'?'rectangle':s.shape;
- const char=diagramTheme().character,rough=char==='hand-drawn'?1.15:char==='loose'?.45:0;
+ const char=diagramTheme().character,rough=char==='hand-drawn'?7.8:char==='loose'?2.1:0;
  const base=`fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"`;
  if(kind==='underline'){
   const y=d.height/2-5,half=d.width/2-7,amount=rough*.55,id=textureSeed(n.id);
@@ -501,9 +517,26 @@ function inkShape(n,s,d,rx){
  const seed=textureSeed(n.id),f=(i)=>textureNoise(seed,i)*rough;
  let path='';
  if(kind==='ellipse'){
-  // Four smoothly joined quarter arcs, with one gentle, stable eccentricity per quadrant.
-  const k=.55228475;
-  path=`M ${w} 0 C ${w} ${h*k+f(1)} ${w*k+f(2)} ${h} 0 ${h} C ${-w*k+f(3)} ${h} ${-w} ${h*k+f(4)} ${-w} 0 C ${-w} ${-h*k+f(5)} ${-w*k+f(6)} ${-h} 0 ${-h} C ${w*k+f(7)} ${-h} ${w} ${-h*k+f(8)} ${w} 0 Z`;
+  if(char==='hand-drawn'){
+   // Closed, tangent-continuous organic silhouette, not a jagged polygon.
+   // Small radial variations make a circle feel deliberately sketched at normal zoom.
+   const count=12,parts=[];
+   for(let i=0;i<count;i++){
+    const a=i*Math.PI*2/count,dr=1+textureNoise(seed,40+i)*Math.min(.075,6/Math.max(25,Math.min(w,h)));
+    parts.push({x:Math.cos(a)*w*dr,y:Math.sin(a)*h*dr});
+   }
+   path=`M ${parts[0].x.toFixed(2)} ${parts[0].y.toFixed(2)}`;
+   for(let i=0;i<count;i++){
+    const a=parts[(i+count-1)%count],b=parts[i],c=parts[(i+1)%count],d=parts[(i+2)%count];
+    const c1={x:b.x+(c.x-a.x)/6,y:b.y+(c.y-a.y)/6};
+    const c2={x:c.x-(d.x-b.x)/6,y:c.y-(d.y-b.y)/6};
+    path+=` C${c1.x.toFixed(2)} ${c1.y.toFixed(2)} ${c2.x.toFixed(2)} ${c2.y.toFixed(2)} ${c.x.toFixed(2)} ${c.y.toFixed(2)}`;
+   }
+   path+=' Z';
+  }else{
+   const k=.55228475;
+   path=`M ${w} 0 C ${w} ${h*k+f(1)} ${w*k+f(2)} ${h} 0 ${h} C ${-w*k+f(3)} ${h} ${-w} ${h*k+f(4)} ${-w} 0 C ${-w} ${-h*k+f(5)} ${-w*k+f(6)} ${-h} 0 ${-h} C ${w*k+f(7)} ${-h} ${w} ${-h*k+f(8)} ${w} 0 Z`;
+  }
  }else{
   // Rounded rectangle remains a rectangle geometrically. Side handles bow subtly;
   // corner arcs stay tangent and have no random vertices or serrated edges.
@@ -516,6 +549,10 @@ function inkShape(n,s,d,rx){
    `C ${-w+r-r*k} ${h} ${-w} ${h-r+r*k} ${-w} ${h-r} `+
    `C ${-w+f(4)} ${h/3} ${-w+f(4)} ${-h/3} ${-w} ${-h+r} `+
    `C ${-w} ${-h+r-r*k} ${-w+r-r*k} ${-h} ${-w+r} ${-h} Z`;
+ }
+ if(char==='hand-drawn'){
+  const ghost=`<path d="${path}" transform="translate(1.7 -1.3)" fill="none" stroke="${esc(displayInk(s.stroke))}" stroke-width="${Math.max(.55,s.strokeWidth*.65)}" opacity=".29" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+  return ghost+`<path d="${path}" ${base}/>`;
  }
  return `<path d="${path}" ${base}/>`;
 }
@@ -533,10 +570,10 @@ function insertBendAt(e,world){
 }
 
 
-function renderEdges(){let html='';for(const e of map().edges){const points=edgePoints(e);if(!points.length)continue;const s=linkStyle(e),sel=selectedEdge===e.id,hover=hoverEdge===e.id,d=svgPath(points),ink=sketchedCurve(points,e.id,diagramTheme().character==='hand-drawn'?1.25:diagramTheme().character==='loose'?.48:0),stroke=sel?('#333333'):displayInk(s.stroke);html+=`<g data-edge="${esc(e.id)}"><path data-ink d="${ink}" fill="none" stroke="${esc(stroke)}" stroke-width="${s.strokeWidth+(sel?.6:0)}" stroke-dasharray="${esc(s.dash||'')}" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/><path class="hit-edge" data-hit data-edge="${esc(e.id)}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
+function renderEdges(){let html='';for(const e of map().edges){const points=edgePoints(e);if(!points.length)continue;const s=linkStyle(e),sel=selectedEdge===e.id,hover=hoverEdge===e.id,d=svgPath(points),ink=sketchedCurve(points,e.id,diagramTheme().character==='hand-drawn'?8.1:diagramTheme().character==='loose'?2.1:0),stroke=sel?('#333333'):displayInk(s.stroke);html+=`<g data-edge="${esc(e.id)}">${diagramTheme().character==='hand-drawn'?`<path data-ghost d="${ink}" transform="translate(1.7 -1.3)" fill="none" stroke="${esc(stroke)}" opacity=".26" stroke-width="${Math.max(.5,s.strokeWidth*.75)}" stroke-dasharray="${esc(s.dash||'')}" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>`:''}<path data-ink d="${ink}" fill="none" stroke="${esc(stroke)}" stroke-width="${s.strokeWidth+(sel?.6:0)}" stroke-dasharray="${esc(s.dash||'')}" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/><path class="hit-edge" data-hit data-edge="${esc(e.id)}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
 if(enteringLinks.has(e.id))html+=`<path class="link-appear" d="${d}" pathLength="1" fill="none" stroke="${'#333333'}" stroke-width="3.5" stroke-linecap="round" pointer-events="none"/>`;
 if(sel||hover){curveSegments(points).forEach((segment,i)=>{const q=atCurve(segment,.5);html+=`<circle class="midpoint" data-edge="${esc(e.id)}" data-segment="${i}" cx="${q.x}" cy="${q.y}" r="5" fill="${'white'}" stroke="${'#888888'}" stroke-width="1.5"/>`});(e.bends||[]).forEach((p,i)=>html+=`<circle class="bend" data-edge="${esc(e.id)}" data-bend="${i}" title="Right-click to remove point" cx="${p.x}" cy="${p.y}" r="6" fill="${'#333333'}" stroke="${'white'}" stroke-width="2"/>`)}html+='</g>'}$('edgeLayer').innerHTML=html;enteringLinks.clear()}
-function renderNodes(){let html='';for(const n of map().nodes){if(n.shelved)continue;const s=nodeStyle(n),d=dimensions(n),sel=selectedNodes.has(n.id),hover=hoverNode===n.id,rx=s.shape==='rounded'?s.radius:s.shape==='rectangle'?s.radius:20;html+=`<g class="node ${connectCandidate===n.id?'connect-target':''}" data-node="${esc(n.id)}" transform="translate(${n.x} ${n.y})"><g class="node-art ${enteringNodes.has(n.id)?'just-added':''}"><rect class="node-target" x="${-d.width/2}" y="${-d.height/2}" width="${d.width}" height="${d.height}" fill="transparent" pointer-events="all"/>`;if(sel)html+=`<rect class="node-outline" x="${-d.width/2-5}" y="${-d.height/2-5}" width="${d.width+10}" height="${d.height+10}" rx="${rx+5}" fill="none" stroke="#777777" stroke-width="1.2" stroke-dasharray="4 4"/>`;const sh=`fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}"`;html+=inkShape(n,s,d,rx);const lineHeight=s.fontSize+6,offset=-(d.lines.length-1)*lineHeight/2+s.fontSize*.33;if(editing?.id!==n.id)html+=`<text class="node-label" text-anchor="middle" x="0" y="${offset}" font-size="${s.fontSize}" font-weight="${s.fontWeight}" font-family="${esc(FONT_FAMILIES[diagramTheme().typeface])}" font-style="${diagramTheme().typeface==='handwritten'?'italic':'normal'}" fill="${esc(displayInk(s.textColor))}">`;if(editing?.id!==n.id){d.lines.forEach((line,i)=>html+=`<tspan x="0" dy="${i?lineHeight:0}">${esc(line)}</tspan>`);html+='</text>';}if(n.pinned)html+=`<circle cx="${-d.width/2+8}" cy="${-d.height/2+8}" r="3.5" fill="#3d3d3d" stroke="white" stroke-width="1"/>`;if(sel||hover||gesture?.kind==='connect'&&gesture.from===n.id){
+function renderNodes(){let html='';for(const n of map().nodes){if(n.shelved)continue;const s=nodeStyle(n),d=dimensions(n),sel=selectedNodes.has(n.id),hover=hoverNode===n.id,rx=s.shape==='rounded'?s.radius:s.shape==='rectangle'?s.radius:20;html+=`<g class="node ${connectCandidate===n.id?'connect-target':''}" data-node="${esc(n.id)}" transform="translate(${n.x} ${n.y})"><g class="node-art ${enteringNodes.has(n.id)?'just-added':''}"><rect class="node-target" x="${-d.width/2}" y="${-d.height/2}" width="${d.width}" height="${d.height}" fill="transparent" pointer-events="all"/>`;if(sel)html+=`<rect class="node-outline" x="${-d.width/2-5}" y="${-d.height/2-5}" width="${d.width+10}" height="${d.height+10}" rx="${rx+5}" fill="none" stroke="#777777" stroke-width="1.2" stroke-dasharray="4 4"/>`;const sh=`fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}"`;html+=inkShape(n,s,d,rx);const lineHeight=s.fontSize+6,offset=-(d.lines.length-1)*lineHeight/2+s.fontSize*.33;if(editing?.id!==n.id)html+=`<text class="node-label" text-anchor="middle" x="0" y="${offset}" font-size="${s.fontSize}" font-weight="${s.fontWeight}" font-family="${esc(FONT_FAMILIES[diagramTheme().typeface])}" font-style="${diagramTheme().typeface==='handwritten'?'italic':'normal'}" fill="${esc(displayInk(s.stroke))}">`;if(editing?.id!==n.id){d.lines.forEach((line,i)=>html+=`<tspan x="0" dy="${i?lineHeight:0}"${textLineAttrs(line,n.id,i)}>${esc(line)}</tspan>`);html+='</text>';}if(n.pinned)html+=`<circle cx="${-d.width/2+8}" cy="${-d.height/2+8}" r="3.5" fill="#3d3d3d" stroke="white" stroke-width="1"/>`;if(sel||hover||gesture?.kind==='connect'&&gesture.from===n.id){
  const gap=18/map().viewport.zoom,hit=Math.max(16,21/map().viewport.zoom),radius=Math.max(8,10/map().viewport.zoom);
  const ports=[['top',0,-d.height/2-gap],['right',d.width/2+gap,0],['bottom',0,d.height/2+gap],['left',-d.width/2-gap,0]];
  for(const [side,px,py] of ports)html+=`<circle class="port" cx="${px}" cy="${py}" r="${radius}" fill="#fff" stroke="#444" stroke-width="1.5" pointer-events="none"/><circle class="port" cx="${px}" cy="${py}" r="2.7" fill="#444" pointer-events="none"/><circle class="port-hit" data-port="${esc(n.id)}" data-side="${side}" cx="${px}" cy="${py}" r="${hit}"/>`;
@@ -606,9 +643,10 @@ function liveGeometry(){
   const e=edgeLookup.get(el.dataset.edge);if(!e)continue;
   const pts=edgePoints(e);if(!pts.length)continue;
   const geometry=svgPath(pts),char=diagramTheme().character;
-  const ink=char==='precise'?geometry:sketchedCurve(pts,e.id,char==='hand-drawn'?1.25:.48);
+  const ink=char==='precise'?geometry:sketchedCurve(pts,e.id,char==='hand-drawn'?8.1:2.1);
   const visible=el.querySelector('[data-ink]'),hit=el.querySelector('[data-hit]');
   if(visible)visible.setAttribute('d',ink);
+  const ghost=el.querySelector('[data-ghost]');if(ghost)ghost.setAttribute('d',ink);
   if(hit)hit.setAttribute('d',geometry);
   // Point-editing handles move together with link bends.
   for(const handle of el.querySelectorAll('[data-bend]')){const pt=e.bends?.[Number(handle.dataset.bend)];if(pt){handle.setAttribute('cx',pt.x);handle.setAttribute('cy',pt.y)}}
@@ -623,7 +661,7 @@ function renderMaps(){const list=$('mapList');list.innerHTML=doc.maps.map((m,ind
 function stylePreview(s,kind){
  if(kind==='nodes'){
   let path=s.shape==='underline'?'<path d="M13 20H57" fill="none"/>':(s.shape==='ellipse'||s.shape==='circle')?(s.equalXY?'<circle cx="35" cy="14" r="12"/>':'<ellipse cx="35" cy="14" rx="27" ry="10"/>'):`<rect x="7" y="4" width="56" height="20" rx="${s.radius||0}"/>`;
-  return `<svg viewBox="0 0 70 28"><g fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth||1}" stroke-linecap="round">${path}</g><path d="M24 14h22" stroke="${esc(displayInk(s.textColor))}" stroke-width="1.2"/></svg>`;
+  return `<svg viewBox="0 0 70 28"><g fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth||1}" stroke-linecap="round">${path}</g><path d="M24 14h22" stroke="${esc(displayInk(s.stroke))}" stroke-width="1.2"/></svg>`;
  }
  return`<svg viewBox="0 0 70 28"><path d="M8 14H62" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}" stroke-dasharray="${esc(s.dash||'')}" stroke-linecap="round"/></svg>`;
 }
@@ -631,7 +669,7 @@ function presetChooser(kind,current){const styles=map().styles[kind],key=kind===
 function discreteSelect(prop,value,choices){const current=String(value),options=choices.map(([key,label])=>[String(key),label]);if(!options.some(([key])=>key===current))options.unshift([current,`${current} (custom)`]);return `<select data-style-prop="${prop}">${options.map(([key,label])=>`<option value="${esc(key)}" ${key===current?'selected':''}>${esc(label)}</option>`).join('')}</select>`}
 function styleEditor(kind,id){const s=styleById(kind,id);if(!s)return'';let html=`<div class="panel-section"><div class="panel-head">${esc(s.name)}</div><div class="preset-actions"><button class="mini-action" id="duplicatePreset" title="Duplicate this style">${ico('copy')} Copy</button><button class="mini-action danger" id="deletePreset" title="Delete this style" ${map().styles[kind].length<2?'disabled':''}>${ico('trash')} Delete</button></div>`;
  if(kind==='nodes'){
- html+=`<div class="field"><label>Shape</label>${discreteSelect('shape',s.shape,[['underline','Underline'],['rectangle','Box'],['ellipse','Ellipse']])}</div>${colorControls('Fill','fill',s.fill)}${colorControls('Outline','stroke',s.stroke)}${colorControls('Text','textColor',s.textColor)}<div class="field"><label>Text size</label>${discreteSelect('fontSize',s.fontSize,[[10,'10'],[15,'15'],[20,'20'],[25,'25']])}</div><div class="field"><label>Weight</label>${discreteSelect('fontWeight',s.fontWeight,[[400,'Regular'],[600,'Medium'],[800,'Bold']])}</div><div class="field"><label>Rounding</label>${discreteSelect('radius',s.radius,[[0,'None'],[8,'Small'],[16,'Medium'],[24,'Large']])}</div><div class="field"><label>Equal X/Y</label>${discreteSelect('equalXY',!!s.equalXY,[[false,'Off'],[true,'On']])}</div>`;
+ html+=`<div class="field"><label>Shape</label>${discreteSelect('shape',s.shape,[['underline','Underline'],['rectangle','Box'],['ellipse','Ellipse']])}</div>${colorControls('Fill','fill',s.fill)}${colorControls('Ink (text + outline)','stroke',s.stroke)}<div class="field"><label>Text size</label>${discreteSelect('fontSize',s.fontSize,[[10,'10'],[15,'15'],[20,'20'],[25,'25']])}</div><div class="field"><label>Weight</label>${discreteSelect('fontWeight',s.fontWeight,[[400,'Regular'],[600,'Medium'],[800,'Bold']])}</div><div class="field"><label>Rounding</label>${discreteSelect('radius',s.radius,[[0,'None'],[8,'Small'],[16,'Medium'],[24,'Large']])}</div><div class="field"><label>Equal X/Y</label>${discreteSelect('equalXY',!!s.equalXY,[[false,'Off'],[true,'On']])}</div>`;
  }else html+=`${colorControls('Line','stroke',s.stroke)}<div class="field"><label>Pattern</label>${discreteSelect('dash',s.dash||'',[['','Solid'],['7 7','Dashed'],['0.1 5','Dotted']])}</div>`;
  html+=`<div class="field"><label>Width</label>${discreteSelect('strokeWidth',s.strokeWidth,[[1,'Fine'],[2,'Regular'],[3,'Medium'],[4,'Heavy'],[6,'Bold']])}</div></div>`;return html;
 }
@@ -683,7 +721,7 @@ function updateEditorPosition(){
  el.style.left=(p.x-d.width*z/2+sty.strokeWidth*z)+'px';el.style.top=(p.y-d.height*z/2+sty.strokeWidth*z)+'px';
  el.style.width=Math.max(20,(d.width-sty.strokeWidth*2)*z)+'px';el.style.height=Math.max(20,(d.height-sty.strokeWidth*2)*z)+'px';
  el.style.fontSize=sty.fontSize*z+'px';el.style.fontWeight=sty.fontWeight;el.style.lineHeight=(sty.fontSize+6)*z+'px';
- el.style.color=displayInk(sty.textColor);el.style.borderRadius=(sty.radius||0)*z+'px';el.style.padding=(Math.max(4,(d.height-d.lines.length*(sty.fontSize+6))/2))*z+'px '+(10*z)+'px';
+ el.style.color=displayInk(sty.stroke);el.style.borderRadius=(sty.radius||0)*z+'px';el.style.padding=(Math.max(4,(d.height-d.lines.length*(sty.fontSize+6))/2))*z+'px '+(10*z)+'px';
 }
 function editNode(id){const n=node(id);if(!n||n.shelved)return;doneEditing(true);editing={id,before:JSON.stringify(doc)};const el=$('editor');el.value=n.text;el.style.fontFamily=FONT_FAMILIES[diagramTheme().typeface];el.style.fontStyle=diagramTheme().typeface==='handwritten'?'italic':'normal';el.style.display='block';updateEditorPosition();renderCanvas();el.focus();el.select();}
 function doneEditing(save){if(!editing)return;const el=$('editor'),n=node(editing.id),before=editing.before;editing=null;el.style.display='none';if(save&&n){n.text=el.value.trim()||'Idea';checkpoint(before)}render();}
@@ -881,8 +919,8 @@ function diagramSVG(){
  const defs=`<defs><pattern id="exp-dots" patternUnits="userSpaceOnUse" width="24" height="24"><circle cx="1" cy="1" r=".75" fill="#ccc"/></pattern><pattern id="exp-grid" patternUnits="userSpaceOnUse" width="24" height="24"><path d="M24 0H0V24" fill="none" stroke="#e5e5e5" stroke-width="1"/></pattern></defs>`;
  let content=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="${background}"/>`;
  if(theme.background==='dots'||theme.background==='grid')content+=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="url(#exp-${theme.background})"/>`;
- for(const e of m.edges){const pts=edgePoints(e);if(!pts.length)continue;const style=linkStyle(e);content+=`<path fill="none" stroke="${esc(style.stroke)}" stroke-width="${style.strokeWidth}" stroke-dasharray="${esc(style.dash||'')}" stroke-linecap="round" stroke-linejoin="round" d="${sketchedCurve(pts,e.id,theme.character==='hand-drawn'?1.25:theme.character==='loose'?.48:0)}"/>`}
- for(const n of ns){const style=nodeStyle(n),d=dimensions(n),rx=(style.shape==='rounded'||style.shape==='rectangle')?style.radius:20;content+=`<g transform="translate(${n.x} ${n.y})">${inkShape(n,style,d,rx)}`;const lh=style.fontSize+6,y=-(d.lines.length-1)*lh/2+style.fontSize*.33;content+=`<text text-anchor="middle" x="0" y="${y}" font-family="${esc(FONT_FAMILIES[theme.typeface])}" font-style="${theme.typeface==='handwritten'?'italic':'normal'}" font-size="${style.fontSize}" font-weight="${style.fontWeight}" fill="${esc(style.textColor)}">`;d.lines.forEach((line,i)=>content+=`<tspan x="0" dy="${i?lh:0}">${esc(line)}</tspan>`);content+='</text></g>'}
+ for(const e of m.edges){const pts=edgePoints(e);if(!pts.length)continue;const style=linkStyle(e),ink=sketchedCurve(pts,e.id,theme.character==='hand-drawn'?8.1:theme.character==='loose'?2.1:0),stroke=esc(style.stroke),dash=esc(style.dash||'');if(theme.character==='hand-drawn')content+=`<path d="${ink}" transform="translate(1.7 -1.3)" fill="none" stroke="${stroke}" opacity=".26" stroke-width="${Math.max(.5,style.strokeWidth*.75)}" stroke-dasharray="${dash}" stroke-linecap="round"/>`;content+=`<path fill="none" stroke="${stroke}" stroke-width="${style.strokeWidth}" stroke-dasharray="${dash}" stroke-linecap="round" stroke-linejoin="round" d="${ink}"/>`}
+ for(const n of ns){const style=nodeStyle(n),d=dimensions(n),rx=(style.shape==='rounded'||style.shape==='rectangle')?style.radius:20;content+=`<g transform="translate(${n.x} ${n.y})">${inkShape(n,style,d,rx)}`;const lh=style.fontSize+6,y=-(d.lines.length-1)*lh/2+style.fontSize*.33;content+=`<text text-anchor="middle" x="0" y="${y}" font-family="${esc(FONT_FAMILIES[theme.typeface])}" font-style="${theme.typeface==='handwritten'?'italic':'normal'}" font-size="${style.fontSize}" font-weight="${style.fontWeight}" fill="${esc(style.stroke)}">`;d.lines.forEach((line,i)=>content+=`<tspan x="0" dy="${i?lh:0}"${textLineAttrs(line,n.id,i)}>${esc(line)}</tspan>`);content+='</text></g>'}
  root.innerHTML=defs+content;return{svg:new XMLSerializer().serializeToString(root),width:w,height:h};
 }
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000)}
@@ -946,16 +984,16 @@ $('propsContent').addEventListener('input',ev=>{
  const s=styleById(styleEditorKind,styleEditorId);if(!s)return;
  const prop=t.dataset.styleProp||t.dataset.styleAlpha;let v=t.value;
  if(t.dataset.styleAlpha){const c=splitColor(s[prop]);v=colorFrom(c.hex,Number(t.value)*255/100)}
- else if(['fill','stroke','textColor'].includes(prop))v=colorFrom(t.value,splitColor(s[prop]).alpha);
+ else if(['fill','stroke'].includes(prop))v=colorFrom(t.value,splitColor(s[prop]).alpha);
  else if(['strokeWidth','fontSize','fontWeight','radius'].includes(prop))v=Number(v);else if(prop==='equalXY')v=v==='true';
  s[prop]=v;changed();renderCanvas();renderMaps();
  const value=t.parentElement?.querySelector('.val,.alpha-value');if(value)value.textContent=t.dataset.styleAlpha?t.value+'%':v;
 });
 $('propsContent').addEventListener('change',ev=>{const t=ev.target;if(t.dataset.snapshot)checkpoint(t.dataset.snapshot);if(t.dataset.styleProp||t.dataset.styleAlpha)renderProps()});
 
-$('railTheme').addEventListener('input',ev=>{if(ev.target.id==='themeBgColor'){const value=ev.target.value;if(/^#[0-9a-f]{6}$/i.test(value)){map().theme.backgroundColor=value;changed();$('stage').style.backgroundColor=value;}}});
+$('railTheme').addEventListener('input',ev=>{if(ev.target.id==='themeBgColor'){const value=ev.target.value;if(/^#[0-9a-f]{6}$/i.test(value)){doc.theme.backgroundColor=value;changed();$('stage').style.backgroundColor=value;}}});
 $('railTheme').addEventListener('change',ev=>{if(ev.target.id==='themeBgColor')renderDiagramTheme()});
-$('railTheme').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;if(b.dataset.themeKey){const key=b.dataset.themeKey,value=b.dataset.themeValue;if(!themeOptions[key]?.includes(value))return;mutate(()=>{map().theme[key]=value});render();return}if(b.dataset.export)exportDiagram(b.dataset.export)});
+$('railTheme').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;if(b.dataset.themeKey){const key=b.dataset.themeKey,value=b.dataset.themeValue;if(!themeOptions[key]?.includes(value))return;mutate(()=>{doc.theme[key]=value});render();return}if(b.dataset.export)exportDiagram(b.dataset.export)});
 $('themeToggle').onclick=()=>{uiTheme=uiTheme==='dark'?'light':'dark';try{localStorage.setItem('mindmap-ui-theme',uiTheme)}catch(e){}applyTheme()};
 $('toggleProps').onclick=()=>{$('props').classList.toggle('collapsed');const c=$('props').classList.contains('collapsed');$('toggleProps').innerHTML=ico(c?'chevron-right':'chevron-down');$('toggleProps').title=c?'Expand properties':'Collapse properties'};
 $('simToggle').onclick=toggleSimulation;$('toggleSim').onclick=()=>{$('simulation').classList.toggle('collapsed');$('toggleSim').classList.toggle('active',!$('simulation').classList.contains('collapsed'))};$('simContent').addEventListener('input',ev=>{if(ev.target.dataset.physics){map().physics[ev.target.dataset.physics]=Number(ev.target.value);ev.target.parentElement.querySelector('.val').textContent=ev.target.value;changed()}});

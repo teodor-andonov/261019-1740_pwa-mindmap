@@ -1,3 +1,7 @@
+## V2.9 — Current authoritative architecture
+
+The file has one **document-wide Theme**, regardless of the number of independent maps (schema v4). Each diagram keeps independent content and style presets. Text and outline share the same Ink stroke, with independent Fill. Hand-drawn visibly alters node and link geometry with smooth, stable curves and a faint secondary stroke, plus deterministic per-letter variation. Old per-diagram theme and separate text-colour descriptions below refer to earlier versions. The migration from legacy per-map themes chooses the first map's theme.
+
 # Mindmap V2 — Agent context and product intent
 
 ## Why
