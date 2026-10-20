@@ -110,3 +110,10 @@ Area-selection must not pan, and right-drag panning must not select. Selection i
 - Editing in flight must not clear the unsaved indicator after an older snapshot has been written.
 - Arrow nudges, cluster duplicate, inline edit, and curve bend edits must stay undoable, without introducing permanent toolbar controls.
 - Maintain the browser regression suite, and do not mistake document-injection tests for full PWA installation/OS integration tests.
+## V2.7 — Diagram-wide visual presentation
+
+Per-diagram object **Styles** are factual formatting presets: fill, stroke, weight, type size, line style. The new optional `maps[].theme` is a non-destructive, diagram-wide skin, providing `character` (`precise|loose|hand-drawn`), `typeface` (`sans|mono|handwritten`) and `background` (`plain|dots|grid|paper`). Changes never mutate nodes/edges/bends or other diagrams. V3 validation defaults unknown/missing values safely.
+
+Loose/hand-drawn paths use deterministic seeded noise based on object ID; interaction hit paths remain precise. SVG export is constructed from standalone geometry, never screenshots or UI chrome; PNG is rasterized from SVG in-browser. Fonts use installed OS fallbacks, not hosted assets.
+
+Dragging selected nodes has an optional centre-axis magnetic alignment threshold (Alt bypass). Dropping the selection on the Shelf tab shelves nodes and groups the move as one Undo action. Retain direct pointer tracking and the static file / offline PWA architecture.

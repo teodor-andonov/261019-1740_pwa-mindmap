@@ -142,7 +142,7 @@ html.dark-inverted{filter:invert(1);background:white;color-scheme:light}
 #unsaved{background:#777}
 #left{top:69px;bottom:auto;height:auto;max-height:calc(100dvh - 150px);left:16px;width:226px;padding:7px;display:flex;flex-direction:column;gap:6px;overflow:visible;align-items:stretch;transition:width .22s ease}
 #left.collapsed{width:50px}
-#railTabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;align-items:center;flex:none}
+#railTabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;align-items:center;flex:none}
 #railTabs button{width:100%;height:34px;min-width:0;padding:6px 3px;border:0;border-radius:9px;display:grid;place-items:center;background:transparent;color:#666;cursor:pointer;transition:background .15s,color .15s}
 #railTabs button:hover{background:#eeeeee;color:#111}
 #railTabs button.active{background:#e8e8e8;color:#111}
@@ -197,6 +197,27 @@ body.focus-mode #railTabs{pointer-events:none}
 @media(max-width:850px){#left{width:206px}#left.collapsed{width:50px}}
 @media(max-width:580px){#left{top:59px;left:9px;max-height:calc(100dvh - 127px);width:min(212px,calc(100vw - 18px))}#left.collapsed{width:46px}#railDeck{max-height:calc(100dvh - 183px)}#railTabs button{height:32px}#bottom{bottom:9px}}
 @media(prefers-reduced-motion:reduce){.rail-pane{animation:none!important}}
+
+/* Diagram-level presentation skin. Document styles remain independent. */
+#railTheme .panel-section{padding:5px 1px 12px}
+.theme-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+.theme-grid.background-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.theme-choice{min-width:0;min-height:53px;border:1px solid #dfdfdf;background:#fff;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:7px 2px;cursor:pointer;transition:background .14s,border-color .14s,transform .14s}
+.theme-choice svg{width:58px;max-width:100%;height:25px;fill:none;stroke:#333;stroke-width:1.6;stroke-linecap:round}
+.theme-choice span{font-size:10px;color:#595959;white-space:nowrap}
+.theme-choice:hover{background:#f3f3f3;transform:translateY(-1px)}
+.theme-choice.active{border-color:#545454;background:#ededed;box-shadow:inset 0 0 0 .5px #545454}
+#railTheme .mini-action{justify-content:center;min-height:32px;flex:1}
+#stage[data-background="plain"]{background:#fff;background-image:none}
+#stage[data-background="dots"]{background:#f7f7f7;background-image:radial-gradient(#d1d1d1 .75px,transparent 1px)}
+#stage[data-background="grid"]{background:#fafafa;background-image:linear-gradient(to right,#e9e9e9 1px,transparent 1px),linear-gradient(to bottom,#e9e9e9 1px,transparent 1px)}
+#stage[data-background="paper"]{background:#efefef;background-image:none}
+#interactionLayer .snap-guide{stroke:#777;stroke-width:1;stroke-dasharray:4 5;vector-effect:non-scaling-stroke;pointer-events:none;opacity:.7}
+#rail-shelf.drop-ready{background:#cfcfcf!important;outline:2px solid #aaa;outline-offset:-2px}
+#railDeck.drag-to-shelf{outline:1.5px dashed #999;outline-offset:-3px}
+/* Touch shelf gestures: horizontal movement drags, vertical movement can scroll the list. */
+#shelfItems [data-restore]{touch-action:pan-y}
+.shelf-ghost{position:fixed;z-index:100;pointer-events:none;border:1px solid #777;background:#fff;color:#222;border-radius:10px;padding:8px 12px;box-shadow:0 12px 28px #0003;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;opacity:.92}
 </style>
 </head>
 <body>
@@ -230,6 +251,8 @@ body.focus-mode #railTabs{pointer-events:none}
 <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></symbol>
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 15.4A9 9 0 0 1 8.6 3.5 9 9 0 1 0 20.5 15.4z"/></symbol>
 <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M15 3v18"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="7" cy="10" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="17" cy="10" r="1"/><path d="M14 16a3 3 0 0 0 4 3"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></symbol>
 </defs></svg>
 <section id="stage" aria-label="Mind map canvas"><svg id="canvas" aria-label="Interactive diagram" role="application"><g id="camera"><g id="edgeLayer"></g><g id="nodeLayer"></g><g id="interactionLayer"></g></g></svg><textarea id="editor" aria-label="Edit node" spellcheck="false"></textarea></section>
 <div id="topbar" class="chrome" role="toolbar" aria-label="File commands">
@@ -242,7 +265,7 @@ body.focus-mode #railTabs{pointer-events:none}
 <button id="saveAs" class="icon-button" title="Save as another file" aria-label="Save as"><svg><use href="#i-copy"/></svg></button>
 <span class="divider"></span><button id="themeToggle" class="icon-button" title="Toggle dark mode" aria-label="Toggle dark mode"><svg><use href="#i-moon"/></svg></button>
 </div>
-<div id="left" class="chrome" role="region" aria-label="Diagrams"><div class="rail-header"><span class="label-mini">Diagrams</span><div class="inline-actions"><button id="mapActions" class="icon-button small" title="Rename, duplicate or delete active diagram" aria-label="Diagram actions"><svg><use href="#i-more"/></svg></button><button id="newMap" class="icon-button small" title="New independent diagram" aria-label="New diagram"><svg><use href="#i-plus"/></svg></button><button id="toggleMaps" class="icon-button small" title="Collapse diagrams" aria-label="Collapse diagrams"><svg><use href="#i-chevron-left"/></svg></button></div></div><div id="mapList" class="map-list"></div><button id="addMapCollapsed" class="icon-button small" title="New diagram" aria-label="New diagram"><svg><use href="#i-plus"/></svg></button><div id="mapMenu" class="map-menu" hidden><button id="renameMap"><svg><use href="#i-pen"/></svg>Rename</button><button id="duplicateMap"><svg><use href="#i-copy"/></svg>Duplicate</button><button id="removeMap" class="danger"><svg><use href="#i-trash"/></svg>Delete</button></div></div>
+<div id="left" class="chrome" role="region" aria-label="Diagram tools"><div class="rail-header"><span class="label-mini">Diagrams</span><div class="inline-actions"><button id="mapActions" class="icon-button small" title="Rename, duplicate or delete active diagram" aria-label="Diagram actions"><svg><use href="#i-more"/></svg></button><button id="newMap" class="icon-button small" title="New independent diagram" aria-label="New diagram"><svg><use href="#i-plus"/></svg></button><button id="toggleMaps" class="icon-button small" title="Collapse diagrams" aria-label="Collapse diagrams"><svg><use href="#i-chevron-left"/></svg></button></div></div><div id="mapList" class="map-list"></div><button id="addMapCollapsed" class="icon-button small" title="New diagram" aria-label="New diagram"><svg><use href="#i-plus"/></svg></button><div id="mapMenu" class="map-menu" hidden><button id="renameMap"><svg><use href="#i-pen"/></svg>Rename</button><button id="duplicateMap"><svg><use href="#i-copy"/></svg>Duplicate</button><button id="removeMap" class="danger"><svg><use href="#i-trash"/></svg>Delete</button></div></div>
 <div id="right">
  <div id="props" class="chrome" role="region" aria-label="Properties"><div class="panel-title"><svg class="icon-inline" style="color:#9da7b5"><use href="#i-sliders"/></svg><span class="title-text" id="propsTitle">Styles</span><button class="icon-button small" id="toggleProps" aria-label="Collapse properties" title="Collapse properties"><svg><use href="#i-chevron-down"/></svg></button></div><div id="propsContent" class="panel-content"></div></div>
  <div id="simulation" class="chrome collapsed" role="region" aria-label="Simulation"><div class="panel-title"><button id="simToggle" class="icon-button small sim-button" title="Start or freeze relaxation (Space)" aria-label="Start simulation"><svg><use href="#i-play"/></svg></button><span class="title-text" id="simTitle">Relax</span><button id="toggleSim" class="icon-button small" title="Simulation settings" aria-label="Expand simulation settings"><svg><use href="#i-sliders"/></svg></button></div><div id="simContent"></div></div>
@@ -272,7 +295,11 @@ const defaultStyles=()=>({nodes:[
 {id:'node-c',name:'Rectangle',shape:'rectangle',fill:'#ffffff00',stroke:'#000000',strokeWidth:1.2,textColor:'#000000',fontSize:12,fontWeight:500,radius:2}],
 links:[{id:'link-a',name:'Bold',stroke:'#000000',strokeWidth:2.7,dash:''},{id:'link-b',name:'Fine',stroke:'#000000',strokeWidth:1.5,dash:''},{id:'link-c',name:'Dashed',stroke:'#000000',strokeWidth:1.4,dash:'5 7'}]});
 const physicsDefault=()=>({length:165,repulsion:2400,gap:22});
-const freshMap=(name='Diagram 01')=>({id:uid('m'),name,nodes:[],edges:[],styles:defaultStyles(),defaultNodeStyleId:'node-a',defaultLinkStyleId:'link-a',physics:physicsDefault(),viewport:{x:0,y:0,zoom:1},mode:'static'});
+const defaultDiagramTheme=()=>({character:'precise',typeface:'sans',background:'dots'});
+const themeOptions={character:['precise','loose','hand-drawn'],typeface:['sans','mono','handwritten'],background:['plain','dots','grid','paper']};
+const diagramTheme=()=>map().theme||defaultDiagramTheme();
+const FONT_FAMILIES={sans:'Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif',mono:'Consolas,Menlo,Monaco,monospace',handwritten:'Segoe Print,Comic Neue,Comic Sans MS,Bradley Hand,cursive'};
+const freshMap=(name='Diagram 01')=>({id:uid('m'),name,nodes:[],edges:[],styles:defaultStyles(),defaultNodeStyleId:'node-a',defaultLinkStyleId:'link-a',theme:defaultDiagramTheme(),physics:physicsDefault(),viewport:{x:0,y:0,zoom:1},mode:'static'});
 const freshDoc=()=>({version:3,title:'Untitled',maps:[freshMap()]});
 const demo=()=>{const d=freshDoc(),m=d.maps[0];m.name='Exploration 01';const data=[[-210,-10,'Big idea','node-a'],[-20,-145,'Questions','node-c'],[35,110,'Research','node-b'],[160,-115,'Experiments','node-c'],[250,80,'Decisions','node-a'],[445,110,'Next steps','node-b']];m.nodes=data.map(([x,y,text,styleId])=>({id:uid('n'),text,x,y,styleId,pinned:false,shelved:false}));for(const [a,b,s] of [[0,1,0],[0,2,0],[1,3,1],[2,4,1],[3,4,2],[4,5,0]])m.edges.push({id:uid('e'),from:m.nodes[a].id,to:m.nodes[b].id,styleId:m.styles.links[s].id,bends:[]});return d};
 let styleEditorKind='nodes',styleEditorId=null,focusMode=false,autosaveTimer=0;
@@ -281,14 +308,14 @@ let documentEpoch=0,editRevision=0,lastWrittenRevision=-1,fileMetadata=null,file
 let fileWrites=Promise.resolve(),recoveryWrites=Promise.resolve();
 let nudgeSession=null,nudgeTimer=0;
 let lastNodeClick={id:null,time:0},doc=demo(),mapId=doc.maps[0].id,selectedNodes=new Set(),selectedEdge=null,hoverNode=null,hoverEdge=null,editing=null,gesture=null,frame=0,velocities={},fileHandle=null,dirty=false,toastTimeout=0,shelfOpen=false,propsCollapsed=false,history=[],future=[],simulationStart=null,focused=false;
-const railTabs=[['diagrams','i-panel','Diagrams'],['styles','i-sliders','Styles'],['simulation','i-play','Simulation'],['shelf','i-archive','Shelf']];
+const railTabs=[['diagrams','i-panel','Diagrams'],['styles','i-sliders','Styles'],['theme','i-palette','Theme'],['simulation','i-play','Simulation'],['shelf','i-archive','Shelf']];
 let railActive='diagrams';
 function buildRail(){
  const rail=$('left'),header=rail.querySelector('.rail-header'),list=$('mapList'),menu=$('mapMenu'),collapsedAdd=$('addMapCollapsed');
  const nav=document.createElement('nav');nav.id='railTabs';nav.setAttribute('aria-label','Sidebar tabs');
  nav.innerHTML=railTabs.map(([id,icon,title])=>`<button id="rail-${id}" data-rail-tab="${id}" class="${id==='diagrams'?'active':''}" title="${title}" aria-label="${title}" aria-pressed="${id==='diagrams'}"><svg><use href="#${icon}"/></svg></button>`).join('')+'<button id="rail-collapse" aria-label="Collapse sidebar" title="Collapse sidebar"><svg><use href="#i-chevron-left"/></svg></button>';
  const deck=document.createElement('div');deck.id='railDeck';
- for(const id of ['diagrams','styles','simulation','shelf']){const pane=document.createElement('section');pane.id='rail'+id[0].toUpperCase()+id.slice(1);pane.className='rail-pane'+(id==='diagrams'?' active':'');pane.dataset.pane=id;deck.append(pane)}
+ for(const id of ['diagrams','styles','theme','simulation','shelf']){const pane=document.createElement('section');pane.id='rail'+id[0].toUpperCase()+id.slice(1);pane.className='rail-pane'+(id==='diagrams'?' active':'');pane.dataset.pane=id;deck.append(pane)}
  rail.prepend(nav);rail.append(deck);
  const p=deck.querySelector('#railDiagrams');p.append(header,list,collapsedAdd,menu);
  deck.querySelector('#railStyles').append($('props'));
@@ -369,6 +396,8 @@ function validateDocument(raw){
  if(!result.maps.length)throw Error('Document contains no diagrams');
  for(const m of result.maps){
   m.name=String(m.name||'Diagram');m.styles=m.styles||deep(shared||defaultStyles());
+  const rawTheme=m.theme&&typeof m.theme==='object'?m.theme:{};m.theme=defaultDiagramTheme();for(const key of Object.keys(themeOptions)){if(themeOptions[key].includes(rawTheme[key]))m.theme[key]=rawTheme[key]}
+
   for(const kind of ['nodes','links'])if(!Array.isArray(m.styles[kind])||!m.styles[kind].length)m.styles[kind]=defaultStyles()[kind];
   m.defaultNodeStyleId=m.styles.nodes.some(s=>s.id===m.defaultNodeStyleId)?m.defaultNodeStyleId:m.styles.nodes[0].id;
   m.defaultLinkStyleId=m.styles.links.some(s=>s.id===m.defaultLinkStyleId)?m.defaultLinkStyleId:m.styles.links[0].id;
@@ -391,7 +420,7 @@ function renameMap(){const m=map(),card=[...document.querySelectorAll('.map-card
 function addNodeAt(x,y,from=null){let out;mutate(()=>{out={id:uid('n'),text:'New idea',x,y,pinned:false,shelved:false,styleId:map().defaultNodeStyleId};map().nodes.push(out);enteringNodes.add(out.id);if(from&&node(from)){const newEdge={id:uid('e'),from,to:out.id,styleId:map().defaultLinkStyleId,bends:[]};map().edges.push(newEdge);enteringLinks.add(newEdge.id)};clearSelection();selectedNodes.add(out.id)});pulseWorld(x,y);return out}
 function connect(a,b){if(a===b||!node(a)||!node(b))return;const existing=map().edges.find(e=>e.from===a&&e.to===b||e.from===b&&e.to===a);if(existing){clearSelection();selectedEdge=existing.id;render();return}mutate(()=>{const e={id:uid('e'),from:a,to:b,styleId:map().defaultLinkStyleId,bends:[]};map().edges.push(e);enteringLinks.add(e.id);clearSelection();selectedEdge=e.id});const aNode=node(a),bNode=node(b);if(aNode&&bNode)pulseWorld((aNode.x+bNode.x)/2,(aNode.y+bNode.y)/2)}
 function removeSelection(){if(!selectedNodes.size&&!selectedEdge)return;mutate(()=>{if(selectedNodes.size){map().nodes=map().nodes.filter(n=>!selectedNodes.has(n.id));map().edges=map().edges.filter(e=>!selectedNodes.has(e.from)&&!selectedNodes.has(e.to))}else if(selectedEdge)map().edges=map().edges.filter(e=>e.id!==selectedEdge);clearSelection()})}
- // Duplicate a selected subgraph as an independent, offset group. Internal links are copied too.
+// Duplicate a selected subgraph as an independent, offset group. Internal links are copied too.
 function duplicateSelection(){
  const chosen=map().nodes.filter(n=>selectedNodes.has(n.id)&&!n.shelved);
  if(!chosen.length)return;
@@ -450,6 +479,34 @@ function curveSegments(pts){
 const atCurve=(s,t)=>{const u=1-t;return{x:u*u*u*s.a.x+3*u*u*t*s.c1.x+3*u*t*t*s.c2.x+t*t*t*s.b.x,y:u*u*u*s.a.y+3*u*u*t*s.c1.y+3*u*t*t*s.c2.y+t*t*t*s.b.y}};
 function svgPath(pts){if(!pts.length)return'';const a=pts[0],segments=curveSegments(pts);return 'M'+a.x.toFixed(1)+' '+a.y.toFixed(1)+segments.map(s=>` C${s.c1.x.toFixed(1)} ${s.c1.y.toFixed(1)} ${s.c2.x.toFixed(1)} ${s.c2.y.toFixed(1)} ${s.b.x.toFixed(1)} ${s.b.y.toFixed(1)}`).join('')}
 
+// Stable seeded imperfection: same object always renders the same stroke across redraws and exports.
+function textureSeed(id){let h=2166136261;for(const c of String(id)){h=Math.imul(h^c.charCodeAt(0),16777619)}return h>>>0}
+function textureNoise(seed,step){let v=(seed+Math.imul(step+1,374761393))>>>0;v=Math.imul(v^(v>>>13),1274126177);v^=v>>>16;return(v>>>0)/4294967295*2-1}
+function sketchedCurve(points,id,amount){
+ if(!points.length)return'';
+ if(!amount)return svgPath(points);
+ const seed=textureSeed(id),segments=curveSegments(points);
+ const v=(point,j,scale=1)=>({x:point.x+textureNoise(seed,j*2)*amount*scale,y:point.y+textureNoise(seed,j*2+1)*amount*scale});
+ return'M'+points[0].x.toFixed(1)+' '+points[0].y.toFixed(1)+segments.map((s,i)=>{const a=v(s.c1,1+i*3),b=v(s.c2,2+i*3);return` C${a.x.toFixed(1)} ${a.y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)} ${s.b.x.toFixed(1)} ${s.b.y.toFixed(1)}`}).join('');
+}
+function inkShape(n,s,d,rx){
+ const character=diagramTheme().character,amount=character==='hand-drawn'?3.2:character==='loose'?1.45:0;
+ const base=`fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}"`;
+ if(!amount)return(s.shape==='ellipse'||s.shape==='circle')?`<ellipse cx="0" cy="0" rx="${d.width/2}" ry="${d.height/2}" ${base}/>`:`<rect x="${-d.width/2}" y="${-d.height/2}" width="${d.width}" height="${d.height}" rx="${rx}" ${base}/>`;
+ const w=d.width/2,h=d.height/2,seed=textureSeed(n.id);
+ let pts=[];
+ if(s.shape==='ellipse'||s.shape==='circle'){
+  for(let k=0;k<12;k++){const theta=Math.PI*2*k/12;pts.push({x:Math.cos(theta)*(w+textureNoise(seed,k)*amount),y:Math.sin(theta)*(h+textureNoise(seed,k+30)*amount)})}
+ }else{
+  const r=Math.min(rx,w*.65,h*.65),corners=[[-w+r,-h],[-w/3,-h],[w/3,-h],[w-r,-h],[w,-h+r],[w,h/3],[w,h-r],[w-r,h],[w/3,h],[-w/3,h],[-w+r,h],[-w,h-r],[-w,-h/3],[-w,-h+r]];
+  pts=corners.map(([x,y],i)=>({x:x+textureNoise(seed,i)*amount,y:y+textureNoise(seed,i+45)*amount}));
+ }
+ // Closed, gently curved outline. Geometry remains the original editable node box.
+ // Start at the first actual vertex, skipping the leading segment.
+ const dpath=sketchedCurve([...pts,pts[0]],n.id+'-shape',amount*.28)+' Z';
+ const second=character==='hand-drawn'?`<path d="${dpath}" fill="none" stroke="${esc(s.stroke)}" stroke-width="${Math.max(.55,s.strokeWidth*.4)}" stroke-opacity=".24" transform="translate(.8 -.6)" pointer-events="none"/>`:'';
+ return`<path d="${dpath}" ${base}/>${second}`;
+}
 // Find the closest point on the existing spline; edit geometry remains a list of simple bends.
 function insertBendAt(e,world){
  const segments=curveSegments(edgePoints(e));if(!segments.length)return;
@@ -464,10 +521,10 @@ function insertBendAt(e,world){
 }
 
 
-function renderEdges(){let html='';for(const e of map().edges){const points=edgePoints(e);if(!points.length)continue;const s=linkStyle(e),sel=selectedEdge===e.id,hover=hoverEdge===e.id,d=svgPath(points),stroke=sel?('#333333'):displayInk(s.stroke);html+=`<g data-edge="${esc(e.id)}"><path d="${d}" fill="none" stroke="${esc(stroke)}" stroke-width="${s.strokeWidth+(sel?.6:0)}" stroke-dasharray="${esc(s.dash||'')}" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/><path class="hit-edge" data-edge="${esc(e.id)}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
+function renderEdges(){let html='';for(const e of map().edges){const points=edgePoints(e);if(!points.length)continue;const s=linkStyle(e),sel=selectedEdge===e.id,hover=hoverEdge===e.id,d=svgPath(points),ink=sketchedCurve(points,e.id,diagramTheme().character==='hand-drawn'?4:diagramTheme().character==='loose'?1.5:0),stroke=sel?('#333333'):displayInk(s.stroke);html+=`<g data-edge="${esc(e.id)}"><path d="${ink}" fill="none" stroke="${esc(stroke)}" stroke-width="${s.strokeWidth+(sel?.6:0)}" stroke-dasharray="${esc(s.dash||'')}" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/><path class="hit-edge" data-edge="${esc(e.id)}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
 if(enteringLinks.has(e.id))html+=`<path class="link-appear" d="${d}" pathLength="1" fill="none" stroke="${'#333333'}" stroke-width="3.5" stroke-linecap="round" pointer-events="none"/>`;
 if(sel||hover){curveSegments(points).forEach((segment,i)=>{const q=atCurve(segment,.5);html+=`<circle class="midpoint" data-edge="${esc(e.id)}" data-segment="${i}" cx="${q.x}" cy="${q.y}" r="5" fill="${'white'}" stroke="${'#888888'}" stroke-width="1.5"/>`});(e.bends||[]).forEach((p,i)=>html+=`<circle class="bend" data-edge="${esc(e.id)}" data-bend="${i}" title="Right-click to remove point" cx="${p.x}" cy="${p.y}" r="6" fill="${'#333333'}" stroke="${'white'}" stroke-width="2"/>`)}html+='</g>'}$('edgeLayer').innerHTML=html;enteringLinks.clear()}
-function renderNodes(){let html='';for(const n of map().nodes){if(n.shelved)continue;const s=nodeStyle(n),d=dimensions(n),sel=selectedNodes.has(n.id),hover=hoverNode===n.id,rx=s.shape==='rounded'?s.radius:s.shape==='rectangle'?s.radius:20;html+=`<g class="node ${connectCandidate===n.id?'connect-target':''}" data-node="${esc(n.id)}" transform="translate(${n.x} ${n.y})"><g class="node-art ${enteringNodes.has(n.id)?'just-added':''}">`;if(sel)html+=`<rect class="node-outline" x="${-d.width/2-5}" y="${-d.height/2-5}" width="${d.width+10}" height="${d.height+10}" rx="${rx+5}" fill="none" stroke="#777777" stroke-width="1.2" stroke-dasharray="4 4"/>`;const sh=`fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}"`;if(s.shape==='ellipse'||s.shape==='circle')html+=`<ellipse cx="0" cy="0" rx="${d.width/2}" ry="${d.height/2}" ${sh}/>`;else html+=`<rect x="${-d.width/2}" y="${-d.height/2}" width="${d.width}" height="${d.height}" rx="${rx}" ${sh}/>`;const lineHeight=s.fontSize+6,offset=-(d.lines.length-1)*lineHeight/2+s.fontSize*.33;if(editing?.id!==n.id)html+=`<text class="node-label" text-anchor="middle" x="0" y="${offset}" font-size="${s.fontSize}" font-weight="${s.fontWeight}" fill="${esc(displayInk(s.textColor))}">`;if(editing?.id!==n.id){d.lines.forEach((line,i)=>html+=`<tspan x="0" dy="${i?lineHeight:0}">${esc(line)}</tspan>`);html+='</text>';}if(n.pinned)html+=`<circle cx="${-d.width/2+8}" cy="${-d.height/2+8}" r="3.5" fill="#3d3d3d" stroke="white" stroke-width="1"/>`;if(sel||hover||gesture?.kind==='connect'&&gesture.from===n.id){
+function renderNodes(){let html='';for(const n of map().nodes){if(n.shelved)continue;const s=nodeStyle(n),d=dimensions(n),sel=selectedNodes.has(n.id),hover=hoverNode===n.id,rx=s.shape==='rounded'?s.radius:s.shape==='rectangle'?s.radius:20;html+=`<g class="node ${connectCandidate===n.id?'connect-target':''}" data-node="${esc(n.id)}" transform="translate(${n.x} ${n.y})"><g class="node-art ${enteringNodes.has(n.id)?'just-added':''}">`;if(sel)html+=`<rect class="node-outline" x="${-d.width/2-5}" y="${-d.height/2-5}" width="${d.width+10}" height="${d.height+10}" rx="${rx+5}" fill="none" stroke="#777777" stroke-width="1.2" stroke-dasharray="4 4"/>`;const sh=`fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}"`;html+=inkShape(n,s,d,rx);const lineHeight=s.fontSize+6,offset=-(d.lines.length-1)*lineHeight/2+s.fontSize*.33;if(editing?.id!==n.id)html+=`<text class="node-label" text-anchor="middle" x="0" y="${offset}" font-size="${s.fontSize}" font-weight="${s.fontWeight}" font-family="${esc(FONT_FAMILIES[diagramTheme().typeface])}" fill="${esc(displayInk(s.textColor))}">`;if(editing?.id!==n.id){d.lines.forEach((line,i)=>html+=`<tspan x="0" dy="${i?lineHeight:0}">${esc(line)}</tspan>`);html+='</text>';}if(n.pinned)html+=`<circle cx="${-d.width/2+8}" cy="${-d.height/2+8}" r="3.5" fill="#3d3d3d" stroke="white" stroke-width="1"/>`;if(sel||hover||gesture?.kind==='connect'&&gesture.from===n.id){
  const gap=18/map().viewport.zoom,hit=Math.max(16,21/map().viewport.zoom),radius=Math.max(8,10/map().viewport.zoom);
  const ports=[['top',0,-d.height/2-gap],['right',d.width/2+gap,0],['bottom',0,d.height/2+gap],['left',-d.width/2-gap,0]];
  for(const [side,px,py] of ports)html+=`<circle class="port" cx="${px}" cy="${py}" r="${radius}" fill="#fff" stroke="#444" stroke-width="1.5" pointer-events="none"/><circle class="port" cx="${px}" cy="${py}" r="2.7" fill="#444" pointer-events="none"/><circle class="port-hit" data-port="${esc(n.id)}" data-side="${side}" cx="${px}" cy="${py}" r="${hit}"/>`;
@@ -482,6 +539,7 @@ function renderGesture(){
   const {start,current}=gesture,x=Math.min(start.x,current.x),y=Math.min(start.y,current.y);
   html=`<rect class="marquee-rect" x="${x}" y="${y}" width="${Math.abs(start.x-current.x)}" height="${Math.abs(start.y-current.y)}" rx="3"/>`;
  }
+ if(gesture?.kind==='move'&&gesture.guides?.length){for(const g of gesture.guides){if(!g)continue;const span=7000;html+=g.axis==='x'?`<path class="snap-guide" d="M${g.at} ${g.other-span}V${g.other+span}"/>`:`<path class="snap-guide" d="M${g.other-span} ${g.at}H${g.other+span}"/>`}}
  $('interactionLayer').innerHTML=html;
 }
 function connectionTarget(clientX,clientY,source){
@@ -505,14 +563,14 @@ function updateMarquee(g){
 function startPinch(){
  stopLongPress();stopCamera();
  if(gesture?.before){const oldId=mapId;doc=JSON.parse(gesture.before);mapId=oldId}
- gesture=null;connectCandidate=null;$('canvas').classList.remove('panning');
+ gesture=null;connectCandidate=null;$('canvas').classList.remove('panning');$('rail-shelf').classList.remove('drop-ready');
  const pts=[...activePointers.values()].slice(0,2),r=$('canvas').getBoundingClientRect(),v=map().viewport;
  const mid={x:(pts[0].x+pts[1].x)/2-r.left,y:(pts[0].y+pts[1].y)/2-r.top};
  gesture={kind:'pinch',ids:[...activePointers.keys()].slice(0,2),distance:Math.max(1,Math.hypot(pts[1].x-pts[0].x,pts[1].y-pts[0].y)),initialZoom:v.zoom,world:{x:(mid.x-v.x)/v.zoom,y:(mid.y-v.y)/v.zoom},initial:{...v},moved:false};
  render();
 }
 
-function renderCanvas(){const v=map().viewport;$('camera').setAttribute('transform',`translate(${v.x} ${v.y}) scale(${v.zoom})`);$('stage').style.backgroundSize=(24*v.zoom)+'px '+(24*v.zoom)+'px';$('stage').style.backgroundPosition=`${v.x}px ${v.y}px`;renderEdges();renderNodes();renderGesture();$('zoomLabel').textContent=Math.round(v.zoom*100)+'%';quickActionPosition();updateEditorPosition();updateUndo()}
+function renderCanvas(){const v=map().viewport;$('camera').setAttribute('transform',`translate(${v.x} ${v.y}) scale(${v.zoom})`);$('stage').dataset.background=diagramTheme().background;$('stage').style.backgroundSize=(24*v.zoom)+'px '+(24*v.zoom)+'px';$('stage').style.backgroundPosition=`${v.x}px ${v.y}px`;renderEdges();renderNodes();renderGesture();$('zoomLabel').textContent=Math.round(v.zoom*100)+'%';quickActionPosition();updateEditorPosition();updateUndo()}
 function renderMaps(){const list=$('mapList');list.innerHTML=doc.maps.map((m,index)=>{const pts=m.nodes.filter(n=>!n.shelved);let image='';if(pts.length){let minX=Math.min(...pts.map(n=>n.x)),maxX=Math.max(...pts.map(n=>n.x)),minY=Math.min(...pts.map(n=>n.y)),maxY=Math.max(...pts.map(n=>n.y));const scale=Math.min(1.8,115/Math.max(60,maxX-minX),52/Math.max(40,maxY-minY));const x=n=>75+(n.x-(minX+maxX)/2)*scale,y=n=>35+(n.y-(minY+maxY)/2)*scale;for(const e of m.edges){const a=pts.find(n=>n.id===e.from),b=pts.find(n=>n.id===e.to);if(a&&b)image+=`<line x1="${x(a)}" y1="${y(a)}" x2="${x(b)}" y2="${y(b)}" stroke="#b3bed2" stroke-width="1.1"/>`}for(const n of pts){const s=nodeStyle(n,m);image+=`<rect x="${x(n)-10}" y="${y(n)-4.5}" width="20" height="9" rx="3.5" fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="1"/>`}}else image='<circle cx="75" cy="35" r="12" fill="none" stroke="#d2d8e2" stroke-width="1" stroke-dasharray="2 3"/>';return `<button class="map-card ${m.id===mapId?'active':''}" data-map="${esc(m.id)}" data-number="${index+1}" title="${esc(m.name)} · Double click to rename"><svg class="map-thumb" viewBox="0 0 150 70">${image}</svg><span class="map-name">${esc(m.name)}</span></button>`}).join('')}
 function stylePreview(s,kind){if(kind==='nodes'){return `<svg viewBox="0 0 70 28"><${s.shape==='circle'||s.shape==='ellipse'?'ellipse cx="35" cy="14" rx="29" ry="10"':'rect x="7" y="4" width="56" height="20" rx="'+s.radius+'"'} fill="${esc(s.fill)}" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}"/><path d="M22 14h25" stroke="${esc(displayInk(s.textColor))}" stroke-width="1.4"/></svg>`}return`<svg viewBox="0 0 70 28"><path d="M8 14H62" stroke="${esc(displayInk(s.stroke))}" stroke-width="${s.strokeWidth}" stroke-dasharray="${esc(s.dash||'')}" stroke-linecap="round"/></svg>`}
 function presetChooser(kind,current){const styles=map().styles[kind],key=kind==='nodes'?'node-style':'link-style';return `<div class="preset-list">${styles.map(s=>`<button class="preset ${current===s.id?'active':''}" data-${key}="${esc(s.id)}" title="${esc(s.name)}">${stylePreview(s,kind)}</button>`).join('')}</div><div class="preset-actions"><button class="mini-action" id="addPreset" title="Add a new style preset">${ico('plus')} New</button></div>`}
@@ -550,9 +608,16 @@ function renderQuickbar(){
  quickActionPosition();
 }
 
+function renderDiagramTheme(){
+ const t=diagramTheme(),pane=$('railTheme');if(!pane)return;
+ const drawings={precise:'M7 20L52 5',loose:'M7 20Q24 5 34 13T52 5', 'hand-drawn':'M7 20Q12 15 17 17T29 11T42 11T52 5'};
+ const bgDrawings={plain:'<rect x="8" y="5" width="44" height="24" rx="2"/>',dots:'<rect x="8" y="5" width="44" height="24" rx="2"/><path d="M18 13h1m10 0h1m10 0h1M18 21h1m10 0h1m10 0h1" stroke-width="2.5"/>',grid:'<rect x="8" y="5" width="44" height="24" rx="2"/><path d="M20 5v24M32 5v24M44 5v24M8 13h44M8 21h44" stroke-opacity=".5"/>',paper:'<rect x="8" y="5" width="44" height="24" rx="2" fill="#ddd"/><path d="M14 12h32M14 18h27M14 24h24" stroke-opacity=".4"/>'};
+ const groups=[['character','Linework',themeOptions.character,themeOptions.character.map(v=>`<path d="${drawings[v]}"/>`)],['typeface','Typography',themeOptions.typeface,themeOptions.typeface.map((v,i)=>`<text x="30" y="24" fill="#333" stroke="none" font-size="21" text-anchor="middle" font-family="${FONT_FAMILIES[v]}">${['Aa','Aa','Aa'][i]}</text>`)],['background','Background',themeOptions.background,themeOptions.background.map(v=>bgDrawings[v])]];
+ pane.innerHTML=groups.map(([key,label,options,previews])=>`<div class="panel-section"><div class="panel-head">${label}</div><div class="theme-grid ${key==='background'?'background-grid':''}">${options.map((opt,i)=>`<button class="theme-choice ${t[key]===opt?'active':''}" data-theme-key="${key}" data-theme-value="${opt}" title="${opt}" aria-pressed="${t[key]===opt}"><svg viewBox="0 0 60 34">${previews[i]}</svg><span>${opt==='hand-drawn'?'Drawn':opt==='handwritten'?'Hand':opt[0].toUpperCase()+opt.slice(1)}</span></button>`).join('')}</div></div>`).join('')+`<div class="panel-section"><div class="panel-head">Export diagram</div><div class="preset-actions"><button class="mini-action" data-export="svg" title="Vector export, current skin">${ico('download')} SVG</button><button class="mini-action" data-export="png" title="PNG export, current skin">${ico('download')} PNG</button></div></div>`;
+}
 function renderSim(){const active=map().mode==='dynamic';$('simTitle').textContent=active?'Freeze':'Relax';$('simToggle').innerHTML=ico(active?'pause':'play');$('simToggle').classList.toggle('active',active);$('simToggle').classList.toggle('is-running',active);$('simToggle').title=active?'Freeze layout (Space)':'Relax layout (Space)';$('simContent').innerHTML=`<div class="panel-section"><div class="field"><label>Distance</label><input data-physics="length" type="range" min="80" max="350" step="5" value="${map().physics.length}"><span class="val">${map().physics.length}</span></div><div class="field"><label>Repulsion</label><input data-physics="repulsion" type="range" min="500" max="9000" step="100" value="${map().physics.repulsion}"><span class="val">${map().physics.repulsion}</span></div><div class="field"><label>Spacing</label><input data-physics="gap" type="range" min="0" max="100" step="5" value="${map().physics.gap}"><span class="val">${map().physics.gap}</span></div></div>`}
 function renderShelf(){const items=map().nodes.filter(n=>n.shelved);$('shelfCount').textContent=items.length?items.length+' stored':'';$('shelfItems').innerHTML=items.map(n=>`<button class="shelf-item" draggable="true" data-restore="${esc(n.id)}" title="Drag to canvas or click to restore">${esc(n.text)}</button>`).join('')||'<span class="muted" style="padding:12px;font-size:11px">Nothing on the shelf</span>';$('shelf').classList.toggle('open',shelfOpen);$('shelfToggle').classList.toggle('active',shelfOpen);$('shelfAll').disabled=!map().nodes.some(n=>!n.shelved)}
-function render(){renderCanvas();renderMaps();renderProps();renderQuickbar();renderSim();renderShelf();updateTitle();updateUndo()}
+function render(){renderCanvas();renderMaps();renderProps();renderQuickbar();renderSim();renderShelf();renderDiagramTheme();updateTitle();updateUndo()}
 function startSimulation(){if(map().mode==='dynamic')return;simulationStart=JSON.stringify(doc);map().mode='dynamic';velocities={};let last=0;const tick=ts=>{if(map().mode!=='dynamic'){frame=0;return}if(ts-last>=19){simulate();renderCanvas();last=ts;}frame=requestAnimationFrame(tick)};frame=requestAnimationFrame(tick);renderSim()}
 function stopSimulation(){if(frame)cancelAnimationFrame(frame);frame=0;if(map().mode==='dynamic'){map().mode='static';if(simulationStart)checkpoint(simulationStart);simulationStart=null;renderSim()}}
 function toggleSimulation(){if(map().mode==='dynamic')stopSimulation();else startSimulation()}
@@ -566,7 +631,7 @@ function updateEditorPosition(){
  el.style.fontSize=sty.fontSize*z+'px';el.style.fontWeight=sty.fontWeight;el.style.lineHeight=(sty.fontSize+6)*z+'px';
  el.style.color=displayInk(sty.textColor);el.style.borderRadius=(sty.radius||0)*z+'px';el.style.padding=(Math.max(4,(d.height-d.lines.length*(sty.fontSize+6))/2))*z+'px '+(10*z)+'px';
 }
-function editNode(id){const n=node(id);if(!n||n.shelved)return;doneEditing(true);editing={id,before:JSON.stringify(doc)};const el=$('editor');el.value=n.text;el.style.display='block';updateEditorPosition();renderCanvas();el.focus();el.select();}
+function editNode(id){const n=node(id);if(!n||n.shelved)return;doneEditing(true);editing={id,before:JSON.stringify(doc)};const el=$('editor');el.value=n.text;el.style.fontFamily=FONT_FAMILIES[diagramTheme().typeface];el.style.display='block';updateEditorPosition();renderCanvas();el.focus();el.select();}
 function doneEditing(save){if(!editing)return;const el=$('editor'),n=node(editing.id),before=editing.before;editing=null;el.style.display='none';if(save&&n){n.text=el.value.trim()||'Idea';checkpoint(before)}render();}
 
 function beginPointer(ev){
@@ -626,7 +691,10 @@ function movePointer(ev){
   if(gesture.kind==='connect'){gesture.current=p;connectCandidate=connectionTarget(ev.clientX,ev.clientY,gesture.from);renderCanvas();return}
   if(gesture.kind==='move'){
    if(Math.hypot(p.x-gesture.start.x,p.y-gesture.start.y)>4/map().viewport.zoom)stopLongPress();
-   for(const id of gesture.ids){const n=node(id),orig=gesture.origins.get(id);n.x=orig.x+p.x-gesture.start.x;n.y=orig.y+p.y-gesture.start.y}
+   const dx=p.x-gesture.start.x,dy=p.y-gesture.start.y;let sx=0,sy=0;gesture.guides=[];
+   if(!ev.altKey){const anchor=gesture.origins.get(gesture.ids[0]);if(anchor){const candidate={x:anchor.x+dx,y:anchor.y+dy},threshold=9/map().viewport.zoom;let nearestX=threshold,nearestY=threshold;for(const other of map().nodes){if(other.shelved||gesture.ids.includes(other.id))continue;const diffX=other.x-candidate.x,diffY=other.y-candidate.y;if(Math.abs(diffX)<nearestX){nearestX=Math.abs(diffX);sx=diffX;gesture.guides[0]={axis:'x',at:other.x,other:other.y}}if(Math.abs(diffY)<nearestY){nearestY=Math.abs(diffY);sy=diffY;gesture.guides[1]={axis:'y',at:other.y,other:other.x}}}}}
+   for(const id of gesture.ids){const n=node(id),orig=gesture.origins.get(id);n.x=orig.x+dx+sx;n.y=orig.y+dy+sy}
+   const shelfRect=$('rail-shelf').getBoundingClientRect();gesture.toShelf=ev.clientX>=shelfRect.left-10&&ev.clientX<=shelfRect.right+10&&ev.clientY>=shelfRect.top-10&&ev.clientY<=shelfRect.bottom+10;$('rail-shelf').classList.toggle('drop-ready',gesture.toShelf);
    gesture.moved=Math.hypot(p.x-gesture.start.x,p.y-gesture.start.y)>3/map().viewport.zoom;renderCanvas();return;
   }
   if(gesture.kind==='marquee'){gesture.current=p;gesture.moved=Math.hypot(p.x-gesture.start.x,p.y-gesture.start.y)>4/map().viewport.zoom;updateMarquee(gesture);renderCanvas();return}
@@ -645,7 +713,7 @@ function endPointer(ev){
  if(!gesture)return;
  const g=gesture,pt=screenPos(ev.clientX,ev.clientY);
  const target=g.kind==='connect'?connectionTarget(ev.clientX,ev.clientY,g.from):null;
- gesture=null;connectCandidate=null;$('canvas').classList.remove('panning');
+ gesture=null;connectCandidate=null;$('canvas').classList.remove('panning');$('rail-shelf').classList.remove('drop-ready');
  if(g.kind==='move'&&!g.moved&&g.ids.length===1){
   const now=Date.now();if(lastNodeClick.id===g.ids[0]&&now-lastNodeClick.time<500){lastNodeClick={id:null,time:0};editNode(g.ids[0]);return}
   lastNodeClick={id:g.ids[0],time:now};
@@ -653,7 +721,8 @@ function endPointer(ev){
  if(g.kind==='connect'){
   if(target)connect(g.from,target);
   else{const el=document.elementFromPoint(ev.clientX,ev.clientY);if(el?.closest('#stage')&&!el?.closest('[data-node]')){const n=addNodeAt(pt.x,pt.y,g.from);editNode(n.id)}}
- }else if(g.kind==='move'||g.kind==='bend')checkpoint(g.before);
+ }else if(g.kind==='move'&&g.moved&&g.toShelf){for(const id of g.ids){const n=node(id);if(!n)continue;const orig=g.origins.get(id);n.x=orig.x;n.y=orig.y;n.shelved=true}clearSelection();checkpoint(g.before);showRailTab('shelf');notice('Moved to shelf')}
+ else if(g.kind==='move'||g.kind==='bend')checkpoint(g.before);
  else if(g.kind==='pan'&&g.moved)changed();
  else if(g.kind==='pan'&&g.button===2&&g.rightBend){const {edge:id,index}=g.rightBend,e=edge(id);if(e?.bends[index])mutate(()=>{e.bends.splice(index,1);selectedEdge=id})}
  else if(g.kind==='marquee'&&!g.moved&&!g.additive)clearSelection();
@@ -747,6 +816,29 @@ const content=serializeDoc(),epoch=documentEpoch,revision=editRevision;
  if(revision===editRevision&&serializeDoc()===content){dirty=false;updateTitle();await recoveryWrite(false)}
  notice('Downloaded .mindmap');
 }
+function diagramSVG(){
+ const m=map(),ns=m.nodes.filter(visible),pad=42;
+ const x0=ns.length?Math.min(...ns.map(n=>n.x-dimensions(n).width/2))-pad:-250;
+ const y0=ns.length?Math.min(...ns.map(n=>n.y-dimensions(n).height/2))-pad:-160;
+ const x1=ns.length?Math.max(...ns.map(n=>n.x+dimensions(n).width/2))+pad:250;
+ const y1=ns.length?Math.max(...ns.map(n=>n.y+dimensions(n).height/2))+pad:160;
+ const w=Math.max(1,Math.ceil(x1-x0)),h=Math.max(1,Math.ceil(y1-y0)),theme=diagramTheme();
+ const root=document.createElementNS('http://www.w3.org/2000/svg','svg');root.setAttribute('xmlns','http://www.w3.org/2000/svg');root.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);root.setAttribute('width',String(w));root.setAttribute('height',String(h));
+ let background=theme.background==='paper'?'#efefef':theme.background==='plain'?'#ffffff':'#f7f7f7';
+ const defs=`<defs><pattern id="exp-dots" patternUnits="userSpaceOnUse" width="24" height="24"><circle cx="1" cy="1" r=".75" fill="#ccc"/></pattern><pattern id="exp-grid" patternUnits="userSpaceOnUse" width="24" height="24"><path d="M24 0H0V24" fill="none" stroke="#e5e5e5" stroke-width="1"/></pattern></defs>`;
+ let content=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="${background}"/>`;
+ if(theme.background==='dots'||theme.background==='grid')content+=`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="url(#exp-${theme.background})"/>`;
+ for(const e of m.edges){const pts=edgePoints(e);if(!pts.length)continue;const style=linkStyle(e);content+=`<path fill="none" stroke="${esc(style.stroke)}" stroke-width="${style.strokeWidth}" stroke-dasharray="${esc(style.dash||'')}" stroke-linecap="round" stroke-linejoin="round" d="${sketchedCurve(pts,e.id,theme.character==='hand-drawn'?4:theme.character==='loose'?1.5:0)}"/>`}
+ for(const n of ns){const style=nodeStyle(n),d=dimensions(n),rx=(style.shape==='rounded'||style.shape==='rectangle')?style.radius:20;content+=`<g transform="translate(${n.x} ${n.y})">${inkShape(n,style,d,rx)}`;const lh=style.fontSize+6,y=-(d.lines.length-1)*lh/2+style.fontSize*.33;content+=`<text text-anchor="middle" x="0" y="${y}" font-family="${esc(FONT_FAMILIES[theme.typeface])}" font-size="${style.fontSize}" font-weight="${style.fontWeight}" fill="${esc(style.textColor)}">`;d.lines.forEach((line,i)=>content+=`<tspan x="0" dy="${i?lh:0}">${esc(line)}</tspan>`);content+='</text></g>'}
+ root.innerHTML=defs+content;return{svg:new XMLSerializer().serializeToString(root),width:w,height:h};
+}
+function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000)}
+async function exportDiagram(format){
+ const snapshot=diagramSVG(),base=(map().name||'Diagram').replace(/[\/:*?"<>|]/g,'-');
+ if(format==='svg'){downloadBlob(new Blob([snapshot.svg],{type:'image/svg+xml;charset=utf-8'}),base+'.svg');notice('Vector diagram exported');return}
+ const img=new Image(),url=URL.createObjectURL(new Blob([snapshot.svg],{type:'image/svg+xml;charset=utf-8'}));
+ try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});const scale=Math.min(2,8192/Math.max(snapshot.width,snapshot.height));const canvas=document.createElement('canvas');canvas.width=Math.ceil(snapshot.width*scale);canvas.height=Math.ceil(snapshot.height*scale);const context=canvas.getContext('2d');context.drawImage(img,0,0,canvas.width,canvas.height);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('PNG encoding failed');downloadBlob(blob,base+'.png');notice('PNG diagram exported')}catch(err){console.warn('Export failed',err);notice('PNG export failed — try SVG')}finally{URL.revokeObjectURL(url)}
+}
 function resetDocument(){if(dirty&&!confirm('Discard unsaved changes?'))return;setDoc(freshDoc());notice('New document')}
 function toggleShelf(){showRailTab('shelf');shelfOpen=true;renderShelf()}
 function toggleFocus(force){focusMode=typeof force==='boolean'?force:!focusMode;document.body.classList.toggle('focus-mode',focusMode);$('focusToggle').classList.toggle('active',focusMode);$('focusToggle').title=focusMode?'Exit focus mode (H / Escape)':'Focus mode (H)';renderQuickbar();}
@@ -808,11 +900,21 @@ $('propsContent').addEventListener('input',ev=>{
 });
 $('propsContent').addEventListener('change',ev=>{const t=ev.target;if(t.dataset.snapshot)checkpoint(t.dataset.snapshot);if(t.dataset.styleProp||t.dataset.styleAlpha)renderProps()});
 
+$('railTheme').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;if(b.dataset.themeKey){const key=b.dataset.themeKey,value=b.dataset.themeValue;if(!themeOptions[key]?.includes(value))return;mutate(()=>{map().theme[key]=value});render();return}if(b.dataset.export)exportDiagram(b.dataset.export)});
 $('themeToggle').onclick=()=>{uiTheme=uiTheme==='dark'?'light':'dark';try{localStorage.setItem('mindmap-ui-theme',uiTheme)}catch(e){}applyTheme()};
 $('toggleProps').onclick=()=>{$('props').classList.toggle('collapsed');const c=$('props').classList.contains('collapsed');$('toggleProps').innerHTML=ico(c?'chevron-right':'chevron-down');$('toggleProps').title=c?'Expand properties':'Collapse properties'};
 $('simToggle').onclick=toggleSimulation;$('toggleSim').onclick=()=>{$('simulation').classList.toggle('collapsed');$('toggleSim').classList.toggle('active',!$('simulation').classList.contains('collapsed'))};$('simContent').addEventListener('input',ev=>{if(ev.target.dataset.physics){map().physics[ev.target.dataset.physics]=Number(ev.target.value);ev.target.parentElement.querySelector('.val').textContent=ev.target.value;changed()}});
 $('addNode').onclick=()=>{const v=map().viewport,n=addNodeAt(($('stage').clientWidth/2-v.x)/v.zoom,($('stage').clientHeight/2-v.y)/v.zoom);editNode(n.id)};$('shelfToggle').onclick=toggleShelf;$('closeShelf').onclick=toggleShelf;$('shelfAll').onclick=shelveAll;$('undo').onclick=undo;$('redo').onclick=redo;$('fit').onclick=()=>fit();$('focusToggle').onclick=toggleFocus;$('zoomIn').onclick=()=>zoom(map().viewport.zoom*1.2);$('zoomOut').onclick=()=>zoom(map().viewport.zoom/1.2);$('zoomLabel').onclick=()=>zoom(1);
-$('shelfItems').addEventListener('click',ev=>{const n=ev.target.closest('[data-restore]');if(n)restoreNode(n.dataset.restore)});$('shelfItems').addEventListener('dragstart',ev=>{const n=ev.target.closest('[data-restore]');if(n){ev.dataTransfer.setData('application/x-mindmap-node',n.dataset.restore);ev.dataTransfer.effectAllowed='move'}});$('stage').addEventListener('dragover',ev=>{if(ev.dataTransfer?.types.includes('application/x-mindmap-node')){ev.preventDefault();ev.dataTransfer.dropEffect='move'}});$('stage').addEventListener('drop',ev=>{const id=ev.dataTransfer?.getData('application/x-mindmap-node');if(id){ev.preventDefault();const p=screenPos(ev.clientX,ev.clientY);restoreNode(id,p.x,p.y)}});
+// HTML5 drag/drop is unreliable on touch; pointer-based shelf gesture mirrors desktop.
+let shelfDrag=null,suppressShelfClickUntil=0;
+$('shelfItems').addEventListener('pointerdown',ev=>{const item=ev.target.closest('[data-restore]');if(!item||ev.pointerType==='mouse')return;shelfDrag={id:item.dataset.restore,originalX:ev.clientX,originalY:ev.clientY,dragged:false,ghost:null};try{item.setPointerCapture(ev.pointerId)}catch(e){/* Synthetic events and older browsers may not capture */}});
+$('shelfItems').addEventListener('pointermove',ev=>{const g=shelfDrag;if(!g||ev.pointerType==='mouse')return;
+ if(!g.dragged&&Math.hypot(ev.clientX-g.originalX,ev.clientY-g.originalY)>9){g.dragged=true;g.ghost=document.createElement('div');g.ghost.className='shelf-ghost';g.ghost.textContent=node(g.id)?.text||'Idea';document.body.append(g.ghost)}
+ if(g.ghost){g.ghost.style.left=(ev.clientX+12)+'px';g.ghost.style.top=(ev.clientY+8)+'px'}
+});
+$('shelfItems').addEventListener('pointerup',ev=>{const g=shelfDrag;if(!g||ev.pointerType==='mouse')return;shelfDrag=null;g.ghost?.remove();if(g.dragged){suppressShelfClickUntil=Date.now()+400;const target=document.elementFromPoint(ev.clientX,ev.clientY);if(target?.closest('#stage')){const p=screenPos(ev.clientX,ev.clientY);restoreNode(g.id,p.x,p.y)}}});
+$('shelfItems').addEventListener('pointercancel',()=>{shelfDrag?.ghost?.remove();shelfDrag=null});
+$('shelfItems').addEventListener('click',ev=>{if(Date.now()<suppressShelfClickUntil)return;const n=ev.target.closest('[data-restore]');if(n)restoreNode(n.dataset.restore)});$('shelfItems').addEventListener('dragstart',ev=>{const n=ev.target.closest('[data-restore]');if(n){ev.dataTransfer.setData('application/x-mindmap-node',n.dataset.restore);ev.dataTransfer.effectAllowed='move'}});$('stage').addEventListener('dragover',ev=>{if(ev.dataTransfer?.types.includes('application/x-mindmap-node')){ev.preventDefault();ev.dataTransfer.dropEffect='move'}});$('stage').addEventListener('drop',ev=>{const id=ev.dataTransfer?.getData('application/x-mindmap-node');if(id){ev.preventDefault();const p=screenPos(ev.clientX,ev.clientY);restoreNode(id,p.x,p.y)}});
 $('editor').addEventListener('blur',()=>doneEditing(true));$('editor').addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.preventDefault();doneEditing(false)}if((ev.ctrlKey||ev.metaKey)&&ev.key==='Enter'){ev.preventDefault();doneEditing(true)}});
 $('fileTitle').onchange=e=>{const next=e.target.value.trim()||'Untitled';mutate(()=>{doc.title=next})};$('fileTitle').onkeydown=e=>{if(e.key==='Enter')e.target.blur()};$('newFile').onclick=resetDocument;$('openFile').onclick=pickFile;$('saveFile').onclick=()=>save();$('saveAs').onclick=()=>save(true);$('fileInput').onchange=async e=>{if(e.target.files[0])await openFile(e.target.files[0]);e.target.value=''};
 document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.ctrlKey||ev.metaKey;if(mod&&k==='s'){ev.preventDefault();doneEditing(true);save(ev.shiftKey);return}if(mod&&k==='o'){ev.preventDefault();pickFile();return}if(mod&&k==='z'){ev.preventDefault();doneEditing(true);if(ev.shiftKey)redo();else undo();return}if(mod&&k==='y'){ev.preventDefault();redo();return}const inField=['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);if(inField)return;if(mod&&k==='d'){ev.preventDefault();duplicateSelection();return}if(['arrowup','arrowdown','arrowleft','arrowright'].includes(k)&&selectedNodes.size&&!mod){ev.preventDefault();const step=ev.shiftKey?10:1;const movement={arrowup:[0,-step],arrowdown:[0,step],arrowleft:[-step,0],arrowright:[step,0]}[k];nudgeSelection(...movement);return;}if(k==='enter'&&selectedNodes.size===1){ev.preventDefault();editNode([...selectedNodes][0]);return;}if(k==='delete'||k==='backspace'){ev.preventDefault();removeSelection()}if(k==='escape'){if(focusMode){toggleFocus(false);return}cancelGesture();clearSelection();focused=false;render()}if(k==='n'){const v=map().viewport,x=($('stage').clientWidth/2-v.x)/v.zoom,y=($('stage').clientHeight/2-v.y)/v.zoom;editNode(addNodeAt(x,y).id)}if(mod&&k==='a'){ev.preventDefault();selectedNodes=new Set(map().nodes.filter(visible).map(n=>n.id));selectedEdge=null;render();return}if(k==='p')pinSelected();if(k==='f')fit();if(k==='h'&&!mod){ev.preventDefault();toggleFocus()}if(k===' '){ev.preventDefault();toggleSimulation()}if(ev.shiftKey&&k==='s'){ev.preventDefault();shelveSelected()}});

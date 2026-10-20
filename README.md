@@ -99,3 +99,14 @@ Real-device Windows/Android behavior, autosave durability and PWA file associati
 Install development dependencies with `pip install -r requirements-dev.txt`, then run `pytest -q tests/test_browser.py`. The tests run headless Chromium (use `CHROMIUM_PATH` if required, or install Playwright Chromium with `python -m playwright install chromium`). They exercise editing and duplication, keyboard nudge/Undo, linked-file serial saves, external-file conflict protection, and Save As.
 
 The suite injects the HTML document into a browser page so it also runs in restricted CI environments. **It does not validate** service worker installation, genuine OS file associations, or persistence across real-origin browser restarts; these still need a real-device/manual pass.
+## V2.7 — Theme skins and gesture refinement
+
+Theme is now a fifth sidebar tab. It is a presentation skin for the active independent diagram, separate from object Styles, and uses the optional version-3 field `maps[].theme`: `{ "character":"precise", "typeface":"sans", "background":"dots" }`.
+
+Choose Precise, Loose or Hand-drawn linework; Sans, Mono or Handwriting typeface; and Plain, Dots, Grid or Paper background. Organic strokes are deterministic per object ID; saved geometry and curve bend points are never modified. Handwriting uses installed-device font fallbacks rather than a bundled font.
+
+The Theme panel exports clean SVG/PNG of the active diagram using its current appearance (without ports, handles or interface). PNG is rendered entirely locally, at up to 2× pixel scale. Different machines may render system fonts differently.
+
+During drag, node-centre alignment snaps to other visible nodes at roughly a 9-screen-pixel threshold with dashed guides; hold Alt to bypass. Drag a selected node or group onto the Shelf tab to put it away with one-step Undo.
+
+Older V1/V2/V3 files continue to open; missing theme values get Precise/Sans/Dots. On-disk version remains **3**. Test with `pytest -q tests/test_browser.py tests/test_theme.py`. OS-level association and physical touch-device checks remain manual QA tasks.

@@ -106,3 +106,15 @@ Next focus: polish handling of many presets, per-object overrides and cross-devi
 - [x] Browser regressions for multi-diagram independence, keyboard Undo, autosave conflicts, and cluster duplication
 - [ ] Physical Windows/Android PWA, persistent recovery and OS association validation
 - [ ] V2.7: alignment/snapping, further text editing and shelf interaction polish
+
+## V2.7 — Theme / export / direct manipulation (shipped)
+
+- [x] Fifth left sidebar tab for independent, whole-diagram Theme; separate from box/link style presets.
+- [x] Precise, Loose and Hand-drawn stable seeded strokes on all outlines and connections.
+- [x] Sans, Mono, Handwriting installed-font stacks; Plain, Dots, Grid and Paper backgrounds.
+- [x] Vector SVG and local PNG exports of the current diagram and skin, free of editor handles.
+- [x] Magnetic centre alignment guides (Alt disables snapping during drag).
+- [x] Selected boxes draggable directly to the Shelf tab as an Undo-safe operation.
+- [x] Seven headless Chromium regressions passed; four original plus three V2.7-specific.
+
+Next: verify real Windows/Android PWA and tablet gestures; increase coverage for snap cancellation, shelf/restore edges, and export on installed browsers. Keep object content and geometry independent from the rendering skin.
