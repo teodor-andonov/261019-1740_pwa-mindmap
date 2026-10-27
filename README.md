@@ -40,3 +40,7 @@ Visit https://teodor-andonov.github.io/261019-1740_pwa-mindmap/ or run `python -
 - The sidebar's tab icons stay visible vertically, even when the content panel is collapsed. Zoom in/out/100% is at bottom-left.
 - The force solver skips links to shelved nodes, guards coincident positions and uses more stable damping. Pinned nodes remain fixed.
 - Version 4 \`.mindmap\` format is unchanged; new metadata is optional. Desktop and touch regressions should still be verified on actual devices.
+
+## Publishing
+
+Release the hosted PWA only when explicitly requested: open **Actions → Publish Mindmap → Run workflow** and select `main`. Normal pushes do not trigger this publishing workflow. In **Settings → Pages**, set **Build and deployment → Source** to **GitHub Actions**; a legacy **Deploy from a branch** setting would continue to publish automatically on branch pushes.
