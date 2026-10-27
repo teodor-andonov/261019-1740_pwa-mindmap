@@ -1,0 +1,41 @@
+name: Publish Mindmap
+
+# Manual release only: code changes do not publish the PWA.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: mindmap-live-deployment
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check PWA shell
+        run: |
+          python -m json.tool manifest.webmanifest > /dev/null
+          node --check sw.js
+      - name: Stage only PWA assets
+        run: |
+          mkdir -p _site
+          cp .nojekyll index.html manifest.webmanifest sw.js \
+             icon.svg icon-maskable.svg \
+             icon-192.png icon-512.png \
+             icon-maskable-192.png icon-maskable-512.png _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
