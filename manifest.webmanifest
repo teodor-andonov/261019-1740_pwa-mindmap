@@ -2,7 +2,7 @@
   "name": "Mindmap — freeform diagrams",
   "short_name": "Mindmap",
   "description": "Offline-first mind mapping. Independent diagrams in local .mindmap files.",
-  "id": "./",
+  "id": "/261019-1740_pwa-mindmap/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
