@@ -256,7 +256,7 @@ body.focus-mode #railTabs{pointer-events:none}
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></symbol>
 </defs></svg>
 <section id="stage" aria-label="Mind map canvas"><svg id="canvas" aria-label="Interactive diagram" role="application"><g id="camera"><g id="edgeLayer"></g><g id="nodeLayer"></g><g id="interactionLayer"></g></g></svg><textarea id="editor" aria-label="Edit node" spellcheck="false"></textarea></section>
-<div id="topbar" class="chrome" role="toolbar" aria-label="File commands">
+<div id="topbar" class="chrome" role="toolbar" aria-label="File commands"><img src="./icon.svg" alt="TaMindmap" width="28" height="28">
 <input id="fileTitle" aria-label="Document name" title="Document name" value="Untitled">
 <div id="unsaved" title="Unsaved changes" aria-label="Unsaved"></div>
 <span class="divider"></span>
@@ -308,6 +308,13 @@ let styleEditorKind='nodes',styleEditorId=null,focusMode=false,autosaveTimer=0;
 // Document epochs prevent writes from an old document affecting a newly opened one.
 let documentEpoch=0,editRevision=0,lastWrittenRevision=-1,fileMetadata=null,fileConflict=false;
 let fileWrites=Promise.resolve(),recoveryWrites=Promise.resolve();
+let taPwaOperations=0;
+async function taPwaOperation(work){taPwaOperations++;try{return await work()}finally{taPwaOperations--}}
+function openFile(file,handle=null){return taPwaOperation(()=>taOriginalopenFile(file,handle))}
+function pickFile(){return taPwaOperation(()=>taOriginalpickFile())}
+function save(forceAs=false){return taPwaOperation(()=>taOriginalsave(forceAs))}
+function exportDiagram(format){return taPwaOperation(()=>taOriginalexportDiagram(format))}
+function flushAutosave(){return taPwaOperation(()=>taOriginalflushAutosave())}
 let nudgeSession=null,nudgeTimer=0;
 let lastNodeClick={id:null,time:0},doc=demo(),mapId=doc.maps[0].id,selectedNodes=new Set(),selectedEdges=new Set(),selectedEdge=null,hoverNode=null,hoverEdge=null,editing=null,gesture=null,frame=0,velocities={},fileHandle=null,dirty=false,toastTimeout=0,shelfOpen=false,propsCollapsed=false,history=[],future=[],simulationStart=null,focused=false;
 const railTabs=[['diagrams','i-panel','Diagrams'],['styles','i-sliders','Styles'],['theme','i-palette','Theme'],['simulation','i-play','Simulation'],['shelf','i-archive','Shelf']];
@@ -941,7 +948,7 @@ function setDoc(next,handle=null,meta=null){
  // A deliberate new/open resets the recovery slot. Queued writes from older epochs are skipped.
  recoveryWrite(false);
 }
-async function openFile(file,handle=null){
+async function taOriginalopenFile(file,handle=null){
  try{
   const next=JSON.parse(await file.text());
   if(dirty&&!confirm('Discard unsaved changes and open another file?'))return;
@@ -950,7 +957,7 @@ async function openFile(file,handle=null){
   notice(file.name.endsWith('.json')?'Imported legacy JSON':'Document opened');
  }catch(e){notice('Cannot open: '+e.message);console.error(e)}
 }
-async function pickFile(){if(window.showOpenFilePicker){try{const handles=await showOpenFilePicker({types:[{description:'Mindmap diagram',accept:{'application/json':['.mindmap','.json']}}],multiple:false});await openFile(await handles[0].getFile(),handles[0]);return}catch(e){if(e.name==='AbortError')return}}$('fileInput').click()}
+async function taOriginalpickFile(){if(window.showOpenFilePicker){try{const handles=await showOpenFilePicker({types:[{description:'Mindmap diagram',accept:{'application/json':['.mindmap','.json']}}],multiple:false});await openFile(await handles[0].getFile(),handles[0]);return}catch(e){if(e.name==='AbortError')return}}$('fileInput').click()}
 function safeName(){return(doc.title||'Untitled').replace(/[\\/:*?"<>|]/g,'-').trim()||'Untitled'}
 function serializeDoc(){return JSON.stringify({...doc,maps:doc.maps.map(m=>({...m,mode:'static'}))},null,2)+'\n'}
 function sameFileMeta(a,b){return !!a&&!!b&&a.lastModified===b.lastModified&&a.size===b.size}
@@ -988,7 +995,7 @@ function downloadDocument(content){
  link.href=url;link.download=safeName()+'.mindmap';document.body.append(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
-async function save(forceAs=false){
+async function taOriginalsave(forceAs=false){
  finishNudge();clearTimeout(autosaveTimer);
 const content=serializeDoc(),epoch=documentEpoch,revision=editRevision;
  let target=forceAs?null:fileHandle;
@@ -1027,7 +1034,7 @@ function diagramSVG(){
  root.innerHTML=defs+content;return{svg:new XMLSerializer().serializeToString(root),width:w,height:h};
 }
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000)}
-async function exportDiagram(format){
+async function taOriginalexportDiagram(format){
  const snapshot=diagramSVG(),base=(map().name||'Diagram').replace(/[\/:*?"<>|]/g,'-');
  if(format==='svg'){downloadBlob(new Blob([snapshot.svg],{type:'image/svg+xml;charset=utf-8'}),base+'.svg');notice('Vector diagram exported');return}
  const img=new Image(),url=URL.createObjectURL(new Blob([snapshot.svg],{type:'image/svg+xml;charset=utf-8'}));
@@ -1056,7 +1063,7 @@ async function recoveryRead(){
  await recoveryWrites.catch(()=>{});
  try{const db=await recoveryStore();const val=await new Promise((resolve,reject)=>{const tx=db.transaction('drafts','readonly');const request=tx.objectStore('drafts').get('latest');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});db.close();return val}catch(e){return null}
 }
-async function flushAutosave(){
+async function taOriginalflushAutosave(){
  if(!dirty)return;
  const epoch=documentEpoch,revision=editRevision,content=serializeDoc(),handle=fileHandle;
  await recoveryWrite(true,deep(doc),epoch);
@@ -1122,9 +1129,9 @@ document.addEventListener('keyup',ev=>{if(['ArrowUp','ArrowDown','ArrowLeft','Ar
 document.addEventListener('dragover',ev=>{if(ev.dataTransfer?.files?.length)ev.preventDefault()});document.addEventListener('drop',async ev=>{const files=ev.dataTransfer?.files;if(files?.length){ev.preventDefault();if(/\.(mindmap|json)$/i.test(files[0].name))await openFile(files[0])}});
 window.addEventListener('beforeunload',ev=>{if(dirty){ev.preventDefault();ev.returnValue=''}});document.addEventListener('visibilitychange',()=>{if(document.hidden&&map().mode==='dynamic')stopSimulation()});window.addEventListener('resize',()=>renderCanvas());
 if('launchQueue' in window)window.launchQueue.setConsumer(async launch=>{const handle=launch.files?.[0];if(handle)try{await openFile(await handle.getFile(),handle)}catch(e){notice('File launch failed')}});
-if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(console.warn);
+window.taPwaCanUpdate=()=>!taPwaOperations&&!dirty&&!editing&&!gesture;
 applyTheme();
 if(innerWidth<580){$('left').classList.add('collapsed')}fit(false);if(innerWidth<580&&map().nodes.some(n=>!n.shelved)){const first=map().nodes.find(n=>!n.shelved),v=map().viewport;v.zoom=Math.max(.68,v.zoom);v.x=innerWidth/2-first.x*v.zoom;v.y=innerHeight/2-first.y*v.zoom;}render();offerRecovery();
 })();
 </script>
-</body></html>
+<script defer src="./pwa-update.js"></script></body></html>

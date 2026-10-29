@@ -44,3 +44,7 @@ Visit https://teodor-andonov.github.io/261019-1740_pwa-mindmap/ or run `python -
 ## Publishing
 
 Release the hosted PWA only when explicitly requested: open **Actions → Publish Mindmap → Run workflow** and select `main`. Normal pushes do not trigger this publishing workflow. In **Settings → Pages**, set **Build and deployment → Source** to **GitHub Actions**; a legacy **Deploy from a branch** setting would continue to publish automatically on branch pushes.
+
+## PWA maintenance
+
+See [PWA.md](PWA.md) for this app’s identity, icons, update guard and release checks. Shared browser requirements live in the [TA PWA guide](https://github.com/teodor-andonov/261027_ta-guides/blob/main/guides/pwa/README.md); repository publishing policy is documented [separately](https://github.com/teodor-andonov/261027_ta-guides/blob/main/guides/publishing/README.md).
