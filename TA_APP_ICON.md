@@ -1,5 +1,11 @@
-# Mindmap PWA app icon
+# TaMindmap icon
 
-Icon: Lucide `network` (v1.61.0), selected for diagrams/connected nodes. TA standard: stroke 2, regular scale 60%, tile radius 25%, icon `#333333` on `#E6E6E6`; Android maskable uses centred 54% scale with solid square background. Regular and maskable 192/512 PNGs plus an SVG favicon are built automatically from `branding/icon-source.svg` by `.github/workflows/ta-icons.yml`. Document file handlers, app paths and other PWA features are intentionally untouched.
+Canonical symbol: Lucide `network` 1.61.0 in `branding/icon-source.svg`.
+Launcher/favicons and the app identity inside the interface use this same symbol.
+Regular tile: stroke 2, 60% glyph, radius 25%, #333333 on #E6E6E6.
+Maskable tile: opaque square, centred 54% glyph; separate 192/512 PNGs.
+Asset generation: `.github/workflows/ta-icons.yml`.
 
-See https://github.com/teodor-andonov/ta-graphic-design-system/blob/main/APP_ICONS.md
+Shared visual rules: [TA app icons](https://github.com/teodor-andonov/261027_ta-guides/blob/main/guides/graphic-design/APP_ICONS.md).
+Runtime/install/update rules: [TA PWA guide](https://github.com/teodor-andonov/261027_ta-guides/blob/main/guides/pwa/README.md).
+See [PWA.md](PWA.md) for this app's integration and release notes.
