@@ -1,4 +1,4 @@
-const CACHE = 'mindmap-shell-v3.1-ta-icons-2-ta-names-1-ta-update-v3';
+const CACHE = 'mindmap-shell-v3.1-ta-icons-2-ta-names-1-ta-update-v4';
 const SHELL = ['./pwa-update.js', './icon.svg?v=ta-20261027', './', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-192.png', './icon-maskable-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
