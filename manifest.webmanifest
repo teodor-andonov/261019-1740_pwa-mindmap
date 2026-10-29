@@ -1,6 +1,6 @@
 {
-  "name": "Mindmap — freeform diagrams",
-  "short_name": "Mindmap",
+  "name": "TaMindmap",
+  "short_name": "TaMindmap",
   "description": "Offline-first mind mapping. Independent diagrams in local .mindmap files.",
   "id": "/261019-1740_pwa-mindmap/",
   "start_url": "./",
